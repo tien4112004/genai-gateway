@@ -184,8 +184,8 @@ class ExamRagService(BaseRagService):
 
         question_types_str = ", ".join(request.question_types)
         additional_req = ""
-        if request.additional_requirements:
-            additional_req = f"\n**Additional Requirements**: {request.additional_requirements}"
+        if request.prompt:
+            additional_req = f"\n**Additional Requirements**: {request.prompt}"
 
         prompt_vars = {
             "topic": request.topic,
@@ -194,7 +194,7 @@ class ExamRagService(BaseRagService):
             "total_questions": total_questions,
             "difficulty_distribution": difficulty_distribution,
             "question_types": question_types_str,
-            "additional_requirements": additional_req,
+            "prompt": additional_req,
         }
 
         sys_msg = self._system_with_subject_grade(

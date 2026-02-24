@@ -7,8 +7,16 @@ from fastapi import APIRouter, Depends, HTTPException, Request, status
 from pydantic import BaseModel
 from sse_starlette.sse import EventSourceResponse
 
-from app.core.fastapi_depends import ContentServiceDep, ExamServiceDep
+from app.core.fastapi_depends import (
+    ContentServiceDep,
+    ExamRagServiceDep,
+    ExamServiceDep,
+    MindmapRagServiceDep,
+    SlideRagServiceDep,
+)
 from app.schemas.exam_content import (
+    ExamMatrix,
+    GenerateMatrixRequest,
     GenerateQuestionsFromContextRequest,
     GenerateQuestionsFromTopicRequest,
     Question,
@@ -23,6 +31,7 @@ from app.schemas.slide_content import (
     PresentationGenerateRequest,
 )
 from app.schemas.token_usage import TokenUsage
+from app.services.base_rag_service import ContentMismatchError
 from app.utils.server_sent_event import sse_json_by_json, sse_word_by_word
 
 logger = logging.getLogger(__name__)
@@ -40,10 +49,20 @@ router = APIRouter(tags=["generate"])
 
 @router.post("/outline/generate")
 def generateOutline(
-    outlineGenerateRequest: OutlineGenerateRequest, svc: ContentServiceDep
+    outlineGenerateRequest: OutlineGenerateRequest,
+    svc: ContentServiceDep,
+    svc_rag: SlideRagServiceDep,
 ):
-    result = svc.make_outline(outlineGenerateRequest)
-    token_usage = svc.last_token_usage
+    req = outlineGenerateRequest
+    if req.grade is not None and req.subject is not None:
+        try:
+            result = svc_rag.make_outline_with_rag(req)
+        except ContentMismatchError as e:
+            raise HTTPException(status_code=400, detail=str(e))
+        token_usage = svc_rag.last_token_usage
+    else:
+        result = svc.make_outline(req)
+        token_usage = svc.last_token_usage
     logger.info(
         f"[OUTLINE/GENERATE] Token Usage: input={token_usage.input_tokens}, output={token_usage.output_tokens}, total={token_usage.total_tokens}, model={token_usage.model}"
     )
@@ -55,24 +74,44 @@ def generateOutline_Stream(
     request: Request,
     outlineGenerateRequest: OutlineGenerateRequest,
     svc: ContentServiceDep,
+    svc_rag: SlideRagServiceDep,
 ):
-    chunks, token_usage = svc.make_outline_stream(outlineGenerateRequest)
-    logger.info(
-        f"[OUTLINE/GENERATE/STREAM] Token Usage: input={token_usage.input_tokens}, output={token_usage.output_tokens}, total={token_usage.total_tokens}, model={token_usage.model}"
-    )
-    print("Starting outline stream response")
-    return EventSourceResponse(
-        sse_word_by_word(request, chunks, token_usage), ping=None
-    )
+    req = outlineGenerateRequest
+    if req.grade is not None and req.subject is not None:
+        try:
+            chunks = svc_rag.make_outline_rag_stream(req)
+        except ContentMismatchError as e:
+            raise HTTPException(status_code=400, detail=str(e))
+        return EventSourceResponse(
+            sse_word_by_word(request, chunks), ping=None
+        )
+    else:
+        chunks, token_usage = svc.make_outline_stream(req)
+        logger.info(
+            f"[OUTLINE/GENERATE/STREAM] Token Usage: input={token_usage.input_tokens}, output={token_usage.output_tokens}, total={token_usage.total_tokens}, model={token_usage.model}"
+        )
+        print("Starting outline stream response")
+        return EventSourceResponse(
+            sse_word_by_word(request, chunks, token_usage), ping=None
+        )
 
 
 @router.post("/presentations/generate")
 def generatePresentation(
     presentationGenerateRequest: PresentationGenerateRequest,
     svc: ContentServiceDep,
+    svc_rag: SlideRagServiceDep,
 ):
-    result = svc.make_presentation(presentationGenerateRequest)
-    token_usage = svc.last_token_usage
+    req = presentationGenerateRequest
+    if req.grade is not None and req.subject is not None:
+        try:
+            result = svc_rag.make_presentation_with_rag(req)
+        except ContentMismatchError as e:
+            raise HTTPException(status_code=400, detail=str(e))
+        token_usage = svc_rag.last_token_usage
+    else:
+        result = svc.make_presentation(req)
+        token_usage = svc.last_token_usage
     logger.info(
         f"[PRESENTATIONS/GENERATE] Token Usage: input={token_usage.input_tokens}, output={token_usage.output_tokens}, total={token_usage.total_tokens}, model={token_usage.model}"
     )
@@ -84,19 +123,26 @@ def generatePresentation_Stream(
     request: Request,
     presentationGenerateRequest: PresentationGenerateRequest,
     svc: ContentServiceDep,
+    svc_rag: SlideRagServiceDep,
 ):
-    print("Received presentation stream request:", presentationGenerateRequest)
-
-    chunks, token_usage = svc.make_presentation_stream(
-        presentationGenerateRequest
-    )
-    logger.info(
-        f"[PRESENTATIONS/GENERATE/STREAM] Token Usage: input={token_usage.input_tokens}, output={token_usage.output_tokens}, total={token_usage.total_tokens}, model={token_usage.model}"
-    )
-
-    return EventSourceResponse(
-        sse_json_by_json(request, chunks, token_usage), ping=None
-    )
+    req = presentationGenerateRequest
+    print("Received presentation stream request:", req)
+    if req.grade is not None and req.subject is not None:
+        try:
+            chunks = svc_rag.make_presentation_rag_stream(req)
+        except ContentMismatchError as e:
+            raise HTTPException(status_code=400, detail=str(e))
+        return EventSourceResponse(
+            sse_json_by_json(request, chunks), ping=None
+        )
+    else:
+        chunks, token_usage = svc.make_presentation_stream(req)
+        logger.info(
+            f"[PRESENTATIONS/GENERATE/STREAM] Token Usage: input={token_usage.input_tokens}, output={token_usage.output_tokens}, total={token_usage.total_tokens}, model={token_usage.model}"
+        )
+        return EventSourceResponse(
+            sse_json_by_json(request, chunks, token_usage), ping=None
+        )
 
 
 # Mock endpoints for testing without LLM calls
@@ -230,10 +276,19 @@ def generate_image_mock(
 def generateMindmap(
     mindmapGenerateRequest: MindmapGenerateRequest,
     svc: ContentServiceDep,
+    svc_rag: MindmapRagServiceDep,
 ):
-    print("Received mindmap generation request:", mindmapGenerateRequest)
-    result = svc.generate_mindmap(mindmapGenerateRequest)
-    token_usage = svc.last_token_usage
+    req = mindmapGenerateRequest
+    print("Received mindmap generation request:", req)
+    if req.grade is not None and req.subject is not None:
+        try:
+            result = svc_rag.generate_mindmap_with_rag(req)
+        except ContentMismatchError as e:
+            raise HTTPException(status_code=400, detail=str(e))
+        token_usage = svc_rag.last_token_usage
+    else:
+        result = svc.generate_mindmap(req)
+        token_usage = svc.last_token_usage
     logger.info(
         f"[MINDMAP/GENERATE] Token Usage: input={token_usage.input_tokens}, output={token_usage.output_tokens}, total={token_usage.total_tokens}, model={token_usage.model}"
     )
@@ -292,37 +347,110 @@ def generate_questions_from_context(
 
 @router.post("/questions/generate", response_model=list[Question])
 def generate_questions(
-    request: GenerateQuestionsFromTopicRequest, svc: ExamServiceDep
+    request: GenerateQuestionsFromTopicRequest,
+    svc: ExamServiceDep,
+    svc_rag: ExamRagServiceDep,
 ):
     """
     Generate questions based on topic and requirements.
 
-    This endpoint uses AI to create exam questions matching the Question entity schema.
+    If grade and subject are provided, uses RAG-enhanced generation.
+    Otherwise uses standard generation.
     """
     logger.info(
         f"[QUESTIONS/GENERATE] Received request for topic: {request.topic}, grade: {request.grade}"
     )
 
+    if request.grade is not None and request.subject is not None:
+        try:
+            result = svc_rag.generate_questions_with_rag(request)
+            token_usage = svc_rag.last_token_usage
+            logger.info(
+                f"[QUESTIONS/GENERATE] Successfully generated {len(result)} questions (RAG). "
+                f"Token Usage: input={token_usage.input_tokens}, output={token_usage.output_tokens}, "
+                f"total={token_usage.total_tokens}, model={token_usage.model}"
+            )
+            return result
+        except ContentMismatchError as e:
+            logger.error(f"[QUESTIONS/GENERATE] Content mismatch: {str(e)}")
+            raise HTTPException(status_code=400, detail=str(e))
+        except ValueError as e:
+            logger.error(f"[QUESTIONS/GENERATE] Validation error: {str(e)}")
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)
+            )
+        except FileNotFoundError as e:
+            logger.error(f"[QUESTIONS/GENERATE] File not found: {str(e)}")
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail=f"Prompt template not found: {str(e)}",
+            )
+        except Exception as e:
+            logger.error(f"[QUESTIONS/GENERATE] Error: {str(e)}")
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail=f"Failed to generate questions: {str(e)}",
+            )
+    else:
+        if request.grade is None or request.subject is None:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="grade and subject are required for question generation",
+            )
+        try:
+            result = svc.generate_questions_from_topic(request)
+            logger.info(
+                f"[QUESTIONS/GENERATE] Successfully generated {len(result)} questions"
+            )
+            return result
+        except ValueError as e:
+            logger.error(f"[QUESTIONS/GENERATE] Validation error: {str(e)}")
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)
+            )
+        except FileNotFoundError as e:
+            logger.error(f"[QUESTIONS/GENERATE] File not found: {str(e)}")
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail=f"Prompt template not found: {str(e)}",
+            )
+        except Exception as e:
+            logger.error(f"[QUESTIONS/GENERATE] Error: {str(e)}")
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail=f"Failed to generate questions: {str(e)}",
+            )
+
+
+@router.post("/exams/matrix/generate", response_model=ExamMatrix)
+def generate_exam_matrix(
+    request: GenerateMatrixRequest, svc: ExamRagServiceDep
+):
+    """
+    Generate a 3D exam matrix based on topics and prerequisites using RAG.
+    """
+    logger.info(
+        f"[EXAM/MATRIX/GENERATE] Received request for matrix: {request.name}"
+    )
+
     try:
-        result = svc.generate_questions_from_topic(request)
+        result = svc.generate_matrix_with_rag(request)
+        token_usage = svc.last_token_usage
         logger.info(
-            f"[QUESTIONS/GENERATE] Successfully generated {len(result)} questions"
+            f"[EXAM/MATRIX/GENERATE] Successfully generated matrix. "
+            f"Token Usage: input={token_usage.input_tokens}, output={token_usage.output_tokens}, "
+            f"total={token_usage.total_tokens}, model={token_usage.model}"
         )
         return result
+    except ContentMismatchError as e:
+        logger.error(f"[EXAM/MATRIX/GENERATE] Content mismatch: {str(e)}")
+        raise HTTPException(status_code=400, detail=str(e))
     except ValueError as e:
-        logger.error(f"[QUESTIONS/GENERATE] Validation error: {str(e)}")
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)
-        )
-    except FileNotFoundError as e:
-        logger.error(f"[QUESTIONS/GENERATE] File not found: {str(e)}")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Prompt template not found: {str(e)}",
-        )
+        logger.error(f"[EXAM/MATRIX/GENERATE] Validation error: {str(e)}")
+        raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
-        logger.error(f"[QUESTIONS/GENERATE] Error: {str(e)}")
+        logger.error(f"[EXAM/MATRIX/GENERATE] Error: {str(e)}")
         raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to generate questions: {str(e)}",
+            status_code=500,
+            detail=f"Failed to generate matrix: {str(e)}",
         )
