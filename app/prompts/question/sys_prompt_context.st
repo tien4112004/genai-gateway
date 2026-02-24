@@ -23,6 +23,19 @@ You must return a JSON array of Question objects. Each Question follows this str
 }
 ```
 
+## CRITICAL: `type` vs `difficulty` are completely different fields
+
+- `type` = the **question FORMAT** → must be exactly one of: `MULTIPLE_CHOICE`, `FILL_IN_BLANK`, `MATCHING`, `OPEN_ENDED`
+- `difficulty` = the **cognitive level** → must be exactly one of: `KNOWLEDGE`, `COMPREHENSION`, `APPLICATION`, `ADVANCED_APPLICATION`
+
+**NEVER** put a difficulty value (`KNOWLEDGE`, `COMPREHENSION`, `APPLICATION`, `ADVANCED_APPLICATION`) in the `type` field.
+**NEVER** put a question format value (`MULTIPLE_CHOICE`, `FILL_IN_BLANK`, `MATCHING`, `OPEN_ENDED`) in the `difficulty` field.
+
+Example (APPLICATION difficulty, OPEN_ENDED format):
+```json
+{ "type": "OPEN_ENDED", "difficulty": "APPLICATION", ... }
+```
+
 ## Question Types and Their Data Structures
 
 ### 1. MULTIPLE_CHOICE
@@ -92,7 +105,7 @@ You must return a JSON array of Question objects. Each Question follows this str
 ### 3. MATCHING
 ```json
 {
-  "type": "matching",
+  "type": "MATCHING",
   "title": "Match the items found in the context",
   "data": {
     "type": "MATCHING",
@@ -135,7 +148,7 @@ You must return a JSON array of Question objects. Each Question follows this str
 ### 4. OPEN_ENDED
 ```json
 {
-  "type": "open_ended",
+  "type": "OPEN_ENDED",
   "title": "Explain the main idea of the passage",
   "data": {
     "type": "OPEN_ENDED",

@@ -35,6 +35,19 @@ Return JSON with this structure:
 
 **Note**: Do NOT include `grade`, `subject`, `chapter`, or `contextId` - these are set automatically by the system.
 
+## CRITICAL: `type` vs `difficulty` are completely different fields
+
+- `type` = the **question FORMAT** → must be exactly one of: `MULTIPLE_CHOICE`, `FILL_IN_BLANK`, `MATCHING`, `OPEN_ENDED`
+- `difficulty` = the **cognitive level** → must be exactly one of: `KNOWLEDGE`, `COMPREHENSION`, `APPLICATION`, `ADVANCED_APPLICATION`
+
+**NEVER** put a difficulty value (`KNOWLEDGE`, `COMPREHENSION`, `APPLICATION`, `ADVANCED_APPLICATION`) in the `type` field.
+**NEVER** put a question format value (`MULTIPLE_CHOICE`, `FILL_IN_BLANK`, `MATCHING`, `OPEN_ENDED`) in the `difficulty` field.
+
+Example (APPLICATION difficulty, OPEN_ENDED format):
+```json
+{ "type": "OPEN_ENDED", "difficulty": "APPLICATION", ... }
+```
+
 ## Question Type Schemas
 
 ### MULTIPLE_CHOICE
