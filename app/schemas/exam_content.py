@@ -19,9 +19,9 @@ class Topic(BaseModel):
 class MatrixContent(BaseModel):
     """Represents a content cell in the exam matrix."""
 
-    difficulty: Literal[
-        "KNOWLEDGE", "COMPREHENSION", "APPLICATION"
-    ] = Field(..., description="Difficulty level")
+    difficulty: Literal["KNOWLEDGE", "COMPREHENSION", "APPLICATION"] = Field(
+        ..., description="Difficulty level"
+    )
     numberOfQuestions: int = Field(
         ...,
         ge=1,
@@ -267,9 +267,9 @@ class MatrixItem(BaseModel):
         ..., ge=1, description="Number of questions to generate"
     )
     points_each: int = Field(..., ge=1, description="Points for each question")
-    difficulty: Literal[
-        "KNOWLEDGE", "COMPREHENSION", "APPLICATION"
-    ] = Field(..., description="Difficulty level")
+    difficulty: Literal["KNOWLEDGE", "COMPREHENSION", "APPLICATION"] = Field(
+        ..., description="Difficulty level"
+    )
     requires_context: bool = Field(
         default=False,
         description="Whether question requires a context/passage",
@@ -380,9 +380,7 @@ class Question(BaseModel):
     """Question entity matching backend Question class."""
 
     type: Literal["MULTIPLE_CHOICE", "FILL_IN_BLANK", "MATCHING", "OPEN_ENDED"]
-    difficulty: Literal[
-        "KNOWLEDGE", "COMPREHENSION", "APPLICATION"
-    ]
+    difficulty: Literal["KNOWLEDGE", "COMPREHENSION", "APPLICATION"]
     title: str = Field(..., description="Question text/prompt")
     titleImageUrl: Optional[str] = Field(None, alias="title_image_url")
     explanation: Optional[str] = None
@@ -452,13 +450,11 @@ class GenerateQuestionsFromTopicRequest(BaseModel):
     """Request to generate questions from a topic."""
 
     topic: str = Field(..., description="Topic or chapter name")
-    grade: Literal["K", "1", "2", "3", "4", "5"]
-    subject: str = Field(..., description="Subject code: T, TV, TA")
+    grade: Optional[Literal["K", "1", "2", "3", "4", "5"]] = None
+    subject: Optional[str] = Field(None, description="Subject code: T, TV, TA")
 
     questions_per_difficulty: Dict[
-        Literal[
-            "KNOWLEDGE", "COMPREHENSION", "APPLICATION"
-        ],
+        Literal["KNOWLEDGE", "COMPREHENSION", "APPLICATION"],
         int,
     ] = Field(..., description="Number of questions for each difficulty level")
 
@@ -494,9 +490,7 @@ class GenerateQuestionsFromContextRequest(BaseModel):
     subject: str = Field(..., description="Subject code: T, TV, TA")
 
     questions_per_difficulty: Dict[
-        Literal[
-            "KNOWLEDGE", "COMPREHENSION", "APPLICATION"
-        ],
+        Literal["KNOWLEDGE", "COMPREHENSION", "APPLICATION"],
         Dict[
             Literal[
                 "MULTIPLE_CHOICE", "FILL_IN_BLANK", "MATCHING", "OPEN_ENDED"
@@ -563,9 +557,7 @@ class TopicRequirement(BaseModel):
         description="Context information if this topic has context-based questions",
     )
     questions_per_difficulty: Dict[
-        Literal[
-            "KNOWLEDGE", "COMPREHENSION", "APPLICATION"
-        ],
+        Literal["KNOWLEDGE", "COMPREHENSION", "APPLICATION"],
         Dict[
             Literal[
                 "MULTIPLE_CHOICE", "FILL_IN_BLANK", "MATCHING", "OPEN_ENDED"
