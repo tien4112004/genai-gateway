@@ -35,13 +35,26 @@ Return JSON with this structure:
 
 **Note**: Do NOT include `grade`, `subject`, `chapter`, or `contextId` - these are set automatically by the system.
 
+## CRITICAL: `type` vs `difficulty` are completely different fields
+
+- `type` = the **question FORMAT** → must be exactly one of: `MULTIPLE_CHOICE`, `FILL_IN_BLANK`, `MATCHING`, `OPEN_ENDED`
+- `difficulty` = the **cognitive level** → must be exactly one of: `KNOWLEDGE`, `COMPREHENSION`, `APPLICATION`
+
+**NEVER** put a difficulty value (`KNOWLEDGE`, `COMPREHENSION`, `APPLICATION`) in the `type` field.
+**NEVER** put a question format value (`MULTIPLE_CHOICE`, `FILL_IN_BLANK`, `MATCHING`, `OPEN_ENDED`) in the `difficulty` field.
+
+Example (APPLICATION difficulty, OPEN_ENDED format):
+```json
+{ "type": "OPEN_ENDED", "difficulty": "APPLICATION", ... }
+```
+
 ## Question Type Schemas
 
 ### MULTIPLE_CHOICE
 ```json
 {
   "type": "MULTIPLE_CHOICE",
-  "difficulty": "KNOWLEDGE|COMPREHENSION|APPLICATION|ADVANCED_APPLICATION",
+  "difficulty": "KNOWLEDGE|COMPREHENSION|APPLICATION",
   "title": "Question text",
   "explanation": "Why the answer is correct",
   "data": {
@@ -144,7 +157,7 @@ Return JSON with this structure:
 1. **REQUIRED FIELDS** for each question:
    - `topicId` (integer matching topic_index from requirements)
    - `type` (MULTIPLE_CHOICE, FILL_IN_BLANK, MATCHING, OPEN_ENDED)
-   - `difficulty` (KNOWLEDGE, COMPREHENSION, APPLICATION, ADVANCED_APPLICATION)
+   - `difficulty` (KNOWLEDGE, COMPREHENSION, APPLICATION)
    - `title` (question text)
    - `explanation` (answer explanation)
    - `data` (type-specific question data)
@@ -156,7 +169,7 @@ Return JSON with this structure:
    - `chapter` - automatically set from topic name
    - `contextId` - automatically set for context-based questions
 
-3. Match exact difficulty level: KNOWLEDGE, COMPREHENSION, APPLICATION, ADVANCED_APPLICATION
+3. Match exact difficulty level: KNOWLEDGE, COMPREHENSION, APPLICATION
 4. Generate EXACTLY the requested count for each requirement
 5. Return ONLY valid JSON, no markdown code blocks
 6. All text in Vietnamese unless subject is TA (English)
@@ -166,7 +179,6 @@ Return JSON with this structure:
 **KNOWLEDGE**: Recall facts, definitions, basic concepts
 **COMPREHENSION**: Understand meaning, explain in own words
 **APPLICATION**: Apply knowledge to new situations
-**ADVANCED_APPLICATION**: Analyze, evaluate, create
 
 ## Grade-Level Language
 

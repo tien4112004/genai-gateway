@@ -9,7 +9,7 @@ You must return a JSON array of Question objects. Each Question follows this str
 ```json
 {
   "type": "MULTIPLE_CHOICE" | "FILL_IN_BLANK" | "MATCHING" | "OPEN_ENDED",
-  "difficulty": "KNOWLEDGE" | "COMPREHENSION" | "APPLICATION" | "ADVANCED_APPLICATION",
+  "difficulty": "KNOWLEDGE" | "COMPREHENSION" | "APPLICATION",
   "title": "Question text/prompt",
   "titleImageUrl": null,
   "explanation": "Explanation of the answer",
@@ -21,6 +21,19 @@ You must return a JSON array of Question objects. Each Question follows this str
   },
   "point": 1.0  // Points based on difficulty
 }
+```
+
+## CRITICAL: `type` vs `difficulty` are completely different fields
+
+- `type` = the **question FORMAT** → must be exactly one of: `MULTIPLE_CHOICE`, `FILL_IN_BLANK`, `MATCHING`, `OPEN_ENDED`
+- `difficulty` = the **cognitive level** → must be exactly one of: `KNOWLEDGE`, `COMPREHENSION`, `APPLICATION`
+
+**NEVER** put a difficulty value (`KNOWLEDGE`, `COMPREHENSION`, `APPLICATION`) in the `type` field.
+**NEVER** put a question format value (`MULTIPLE_CHOICE`, `FILL_IN_BLANK`, `MATCHING`, `OPEN_ENDED`) in the `difficulty` field.
+
+Example (APPLICATION difficulty, OPEN_ENDED format):
+```json
+{ "type": "OPEN_ENDED", "difficulty": "APPLICATION", ... }
 ```
 
 ## Question Types and Their Data Structures
@@ -92,7 +105,7 @@ You must return a JSON array of Question objects. Each Question follows this str
 ### 3. MATCHING
 ```json
 {
-  "type": "matching",
+  "type": "MATCHING",
   "title": "Match the items found in the context",
   "data": {
     "type": "MATCHING",
@@ -135,7 +148,7 @@ You must return a JSON array of Question objects. Each Question follows this str
 ### 4. OPEN_ENDED
 ```json
 {
-  "type": "open_ended",
+  "type": "OPEN_ENDED",
   "title": "Explain the main idea of the passage",
   "data": {
     "type": "OPEN_ENDED",
@@ -155,7 +168,6 @@ Use the requested difficulty distribution to determine the number of questions f
 - KNOWLEDGE (nhận biết) - Direct recall, basic recognition (points: 1.0)
 - COMPREHENSION (thông hiểu) - Understanding, application (points: 2.0)
 - APPLICATION (vận dụng) - Analysis, problem-solving using learned concepts (points: 3.0)
-- ADVANCED_APPLICATION (vận dụng cao) - Complex analysis, synthesis, evaluation (points: 4.0-5.0)
 
 ## Requirements
 

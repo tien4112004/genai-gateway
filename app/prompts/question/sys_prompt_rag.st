@@ -22,7 +22,7 @@ You must return a JSON array of Question objects. Each Question follows this str
 ```json
 {
   "type": "MULTIPLE_CHOICE" | "FILL_IN_BLANK" | "MATCHING" | "OPEN_ENDED",
-  "difficulty": "KNOWLEDGE" | "COMPREHENSION" | "APPLICATION" | "ADVANCED_APPLICATION",
+  "difficulty": "KNOWLEDGE" | "COMPREHENSION" | "APPLICATION",
   "title": "Question text/prompt",
   "titleImageUrl": null,
   "explanation": "Explanation of the answer",
@@ -106,7 +106,6 @@ You must return a JSON array of Question objects. Each Question follows this str
 - KNOWLEDGE: Recall facts (1.0 pts)
 - COMPREHENSION: Understand meaning (2.0 pts)
 - APPLICATION: Solve problems (3.0 pts)
-- ADVANCED_APPLICATION: Deep analysis (4.0-5.0 pts)
 
 ### Requirements
 

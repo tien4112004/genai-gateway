@@ -107,7 +107,7 @@ Return ONLY a valid JSON object with this exact structure:
         ]
       }
     ],
-    "difficulties": ["KNOWLEDGE", "COMPREHENSION", "APPLICATION", "ADVANCED_APPLICATION"],
+    "difficulties": ["KNOWLEDGE", "COMPREHENSION", "APPLICATION"],
     "questionTypes": ["MULTIPLE_CHOICE", "FILL_IN_BLANK", "MATCHING", "OPEN_ENDED"]
   },
   "matrix": [
