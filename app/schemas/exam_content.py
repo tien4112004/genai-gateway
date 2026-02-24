@@ -20,7 +20,7 @@ class MatrixContent(BaseModel):
     """Represents a content cell in the exam matrix."""
 
     difficulty: Literal[
-        "KNOWLEDGE", "COMPREHENSION", "APPLICATION", "ADVANCED_APPLICATION"
+        "KNOWLEDGE", "COMPREHENSION", "APPLICATION"
     ] = Field(..., description="Difficulty level")
     numberOfQuestions: int = Field(
         ...,
@@ -241,7 +241,7 @@ class GenerateMatrixRequest(BaseModel):
             "difficulties": (
                 ", ".join(self.difficulties)
                 if self.difficulties
-                else "KNOWLEDGE, COMPREHENSION, APPLICATION, ADVANCED_APPLICATION"
+                else "KNOWLEDGE, COMPREHENSION, APPLICATION"
             ),
             "question_types": (
                 ", ".join(self.questionTypes)
@@ -268,7 +268,7 @@ class MatrixItem(BaseModel):
     )
     points_each: int = Field(..., ge=1, description="Points for each question")
     difficulty: Literal[
-        "KNOWLEDGE", "COMPREHENSION", "APPLICATION", "ADVANCED_APPLICATION"
+        "KNOWLEDGE", "COMPREHENSION", "APPLICATION"
     ] = Field(..., description="Difficulty level")
     requires_context: bool = Field(
         default=False,
@@ -381,7 +381,7 @@ class Question(BaseModel):
 
     type: Literal["MULTIPLE_CHOICE", "FILL_IN_BLANK", "MATCHING", "OPEN_ENDED"]
     difficulty: Literal[
-        "KNOWLEDGE", "COMPREHENSION", "APPLICATION", "ADVANCED_APPLICATION"
+        "KNOWLEDGE", "COMPREHENSION", "APPLICATION"
     ]
     title: str = Field(..., description="Question text/prompt")
     titleImageUrl: Optional[str] = Field(None, alias="title_image_url")
@@ -457,7 +457,7 @@ class GenerateQuestionsFromTopicRequest(BaseModel):
 
     questions_per_difficulty: Dict[
         Literal[
-            "KNOWLEDGE", "COMPREHENSION", "APPLICATION", "ADVANCED_APPLICATION"
+            "KNOWLEDGE", "COMPREHENSION", "APPLICATION"
         ],
         int,
     ] = Field(..., description="Number of questions for each difficulty level")
@@ -495,7 +495,7 @@ class GenerateQuestionsFromContextRequest(BaseModel):
 
     questions_per_difficulty: Dict[
         Literal[
-            "KNOWLEDGE", "COMPREHENSION", "APPLICATION", "ADVANCED_APPLICATION"
+            "KNOWLEDGE", "COMPREHENSION", "APPLICATION"
         ],
         Dict[
             Literal[
@@ -564,7 +564,7 @@ class TopicRequirement(BaseModel):
     )
     questions_per_difficulty: Dict[
         Literal[
-            "KNOWLEDGE", "COMPREHENSION", "APPLICATION", "ADVANCED_APPLICATION"
+            "KNOWLEDGE", "COMPREHENSION", "APPLICATION"
         ],
         Dict[
             Literal[
