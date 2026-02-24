@@ -34,14 +34,13 @@ class OutlineGenerateRequest(BaseModel):
             "provider": self.provider,
             "language": self.language,
             "slide_count": self.slide_count,
+            "grade": self.grade or "",
+            "subject_name": SUBJECT_NAME_MAP.get(
+                self.subject, self.subject or ""
+            ),
         }
-        if self.grade:
-            result["grade"] = self.grade
         if self.subject:
             result["subject"] = self.subject
-            result["subject_name"] = SUBJECT_NAME_MAP.get(
-                self.subject, self.subject
-            )
         return result
 
 

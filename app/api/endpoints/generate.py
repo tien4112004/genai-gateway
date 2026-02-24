@@ -392,6 +392,11 @@ def generate_questions(
                 detail=f"Failed to generate questions: {str(e)}",
             )
     else:
+        if request.grade is None or request.subject is None:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="grade and subject are required for question generation",
+            )
         try:
             result = svc.generate_questions_from_topic(request)
             logger.info(
