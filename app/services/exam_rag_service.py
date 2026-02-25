@@ -1,4 +1,5 @@
 import json
+import logging
 import re
 import uuid
 from datetime import datetime
@@ -14,6 +15,8 @@ from app.schemas.exam_content import (
     Question,
 )
 from app.services.base_rag_service import BaseRagService
+
+logger = logging.getLogger(__name__)
 
 
 class ExamRagService(BaseRagService):
@@ -216,12 +219,35 @@ class ExamRagService(BaseRagService):
         )
 
         try:
-            result_text = self._extract_json(result["answer"])
+            answer = result.get("answer", "")
+            logger.info(
+                f"[EXAM_RAG_SERVICE] RAG response length: {len(answer)} chars"
+            )
+
+            if not answer or not answer.strip():
+                logger.error("[EXAM_RAG_SERVICE] LLM returned empty response")
+                raise ValueError(
+                    "LLM returned empty response - no questions generated"
+                )
+
+            result_text = self._extract_json(answer)
+
+            if not result_text:
+                logger.error(
+                    "[EXAM_RAG_SERVICE] No JSON content extracted from response"
+                )
+                raise ValueError("No JSON content found in LLM response")
+
             questions_data = json.loads(result_text)
 
             if not isinstance(questions_data, list):
                 raise ValueError(
                     f"Expected list of questions, got {type(questions_data)}"
+                )
+
+            if len(questions_data) != total_questions:
+                logger.warning(
+                    f"[EXAM_RAG_SERVICE] Expected {total_questions} questions, got {len(questions_data)}"
                 )
 
             questions = []
@@ -230,12 +256,19 @@ class ExamRagService(BaseRagService):
                     question = Question(**q)
                     questions.append(question)
                 except Exception as e:
-                    print(f"[ERROR] Failed to parse question {i}: {e}")
+                    logger.error(
+                        f"[EXAM_RAG_SERVICE] Failed to parse question {i}: {e}"
+                    )
+                    logger.error(f"[EXAM_RAG_SERVICE] Question data: {q}")
                     raise ValueError(
                         f"Invalid question format at index {i}: {e}"
                     )
 
+            logger.info(
+                f"[EXAM_RAG_SERVICE] Successfully generated {len(questions)} questions"
+            )
             return questions
 
-        except Exception as e:
-            raise ValueError(f"Failed to generate questions with RAG: {e}")
+        except json.JSONDecodeError as e:
+            logger.error(f"[EXAM_RAG_SERVICE] JSON parsing error: {e}")
+            raise ValueError(f"Invalid JSON response from LLM: {e}")
