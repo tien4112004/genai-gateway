@@ -23,6 +23,7 @@ services:
       - ALLOWED_HEADERS=${ALLOWED_HEADERS:-*}
       - PYTHONUNBUFFERED=1
       - LOG_LEVEL=${LOG_LEVEL:-info}
+      - PG_CONNECTION_STRING=${PG_CONNECTION_STRING:-postgresql://postgres:password@postgres:5432/phoenix}
       # Google Cloud Service Account
       - GOOGLE_APPLICATION_CREDENTIALS=/app/secrets/gcp-service-account.json
       # API Keys
