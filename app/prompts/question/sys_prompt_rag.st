@@ -59,15 +59,11 @@ You must return a JSON array of Question objects. Each Question follows this str
 #### 2. FILL_IN_BLANK
 ```json
 {
-  "type": "fill_in_blank",
+  "type": "FILL_IN_BLANK",
   "title": "Complete...",
   "data": {
     "type": "FILL_IN_BLANK",
-    "segments": [
-      {"type": "TEXT", "content": "Prefix "},
-      {"type": "BLANK", "content": "", "acceptableAnswers": ["ans1", "ans2"]},
-      {"type": "TEXT", "content": " suffix."}
-    ],
+    "data": "Prefix {{ans1|ans2}} suffix.",
     "caseSensitive": false
   }
 }
