@@ -50,11 +50,6 @@ class Settings(BaseSettings):
         "DATABASE_URL",
         "postgresql://postgres:postgres@localhost:5432/datn_monolith_db",
     )
-    database_host: str = os.getenv("DATABASE_HOST", "localhost")
-    database_port: int = int(os.getenv("DATABASE_PORT", 5432))
-    database_name: str = os.getenv("DATABASE_NAME", "datn_monolith_db")
-    database_user: str = os.getenv("DATABASE_USER", "postgres")
-    database_password: str = os.getenv("DATABASE_PASSWORD", "postgres")
 
     # Vector Database Configuration (PGVector)
     pg_connection_string: str = os.getenv(
