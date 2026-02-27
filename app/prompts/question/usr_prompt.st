@@ -17,25 +17,6 @@ ${prompt}
 - Ensure each question follows the schema in the system prompt
 - For grade level ${grade}, use age-appropriate language and concepts
 - For subject ${subject}, use appropriate language (Vietnamese or English)
-- Return ONLY a valid JSON array, no code blocks or extra text
-
-Example output structure:
-[
-  {
-    "context": null,
-    "question_number": null,
-    "topic": "${topic}",
-    "grade": "${grade}",
-    "difficulty": "knowledge",
-    "question": {
-      "question_type": "multiple_choice",
-      "content": "Your question text here?",
-      "answers": ["Option A", "Option B", "Option C", "Option D"],
-      "correct_answer": "Option B",
-      "explanation": "Explanation of why this is correct"
-    },
-    "default_points": 2
-  }
-]
+- Return ONLY a valid JSON array. Do not include any thinking, reasoning, or extra text before or after the JSON.
 
 Generate the questions now.
