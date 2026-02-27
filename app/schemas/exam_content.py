@@ -421,8 +421,10 @@ class Question(BaseModel):
                 "OPEN_ENDED",
             }
 
-            # If top-level type is invalid but data.type is valid, heal it
-            if q_type not in valid_types and isinstance(q_data, dict):
+            # Only heal when the outer type is a misplaced difficulty value.
+            # Any other invalid string (e.g. "INVALID_TYPE") must still fail validation.
+            difficulty_values = {"KNOWLEDGE", "COMPREHENSION", "APPLICATION"}
+            if q_type in difficulty_values and isinstance(q_data, dict):
                 data_type = q_data.get("type")
                 if data_type in valid_types:
                     data["type"] = data_type
