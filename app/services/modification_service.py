@@ -274,12 +274,6 @@ class ModificationService:
                         f"Mindmap Topic: {request.context.mindmapTitle}. "
                     )
 
-                # Educational metadata
-                if request.context.grade:
-                    tree_context += f"Grade Level: {request.context.grade}. "
-                if request.context.subject:
-                    tree_context += f"Subject: {request.context.subject}. "
-
                 # Hierarchy context
                 if request.context.rootNodeContent:
                     tree_context += (
@@ -316,8 +310,6 @@ class ModificationService:
 
             # Prepare grade level text for prompt
             grade_level = ""
-            if request.context and request.context.grade:
-                grade_level = f" for {request.context.grade}"
 
             prompt = self._render(
                 prompt_key,
@@ -464,12 +456,6 @@ class ModificationService:
                         f"Mindmap Topic: {request.context.mindmapTitle}. "
                     )
 
-                # Educational metadata
-                if request.context.grade:
-                    tree_context += f"Grade Level: {request.context.grade}. "
-                if request.context.subject:
-                    tree_context += f"Subject: {request.context.subject}. "
-
                 # Hierarchy context
                 if request.context.rootNodeContent:
                     tree_context += (
@@ -511,18 +497,13 @@ class ModificationService:
             )
             prompt_key = f"modification.mindmap.{operation}_branch"
 
-            # Prepare grade level text for prompt
-            grade_level = ""
-            if request.context and request.context.grade:
-                grade_level = f" for {request.context.grade}"
-
             prompt = self._render(
                 prompt_key,
                 {
                     "nodes_json": nodes_json,
                     "tree_context": tree_context,
                     "instruction": request.instruction,
-                    "grade_level": grade_level,
+                    "grade_level": "",
                 },
             )
 
