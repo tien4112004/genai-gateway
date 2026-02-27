@@ -1,9 +1,9 @@
 """Schemas for exam and question generation."""
 
 from datetime import datetime
-from typing import Any, Dict, List, Literal, Optional, Union
+from typing import Annotated, Any, Dict, List, Literal, Optional, Union
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 
 
 class Topic(BaseModel):
@@ -394,13 +394,40 @@ class Question(BaseModel):
         alias="context_id",
         description="ID of the context this question belongs to (for context-based questions)",
     )
-    data: Union[
-        MultipleChoiceData, FillInBlankData, MatchingData, OpenEndedData
+    data: Annotated[
+        Union[
+            MultipleChoiceData, FillInBlankData, MatchingData, OpenEndedData
+        ],
+        Field(discriminator="type"),
     ]
     point: float = Field(default=1.0, ge=0)
 
     class Config:
         populate_by_name = True
+
+    @model_validator(mode="before")
+    @classmethod
+    def heal_type_mismatch(cls, data: Any) -> Any:
+        """Heal cases where 'type' is incorrectly set (e.g., duplicated from difficulty)."""
+        if isinstance(data, dict):
+            q_type = data.get("type")
+            q_data = data.get("data")
+
+            # Valid question types
+            valid_types = {
+                "MULTIPLE_CHOICE",
+                "FILL_IN_BLANK",
+                "MATCHING",
+                "OPEN_ENDED",
+            }
+
+            # If top-level type is invalid but data.type is valid, heal it
+            if q_type not in valid_types and isinstance(q_data, dict):
+                data_type = q_data.get("type")
+                if data_type in valid_types:
+                    data["type"] = data_type
+
+        return data
 
 
 class GenerateQuestionsRequest(BaseModel):
