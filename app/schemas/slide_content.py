@@ -1,5 +1,5 @@
 import uuid
-from typing import Optional
+from typing import List, Optional
 
 from pydantic import BaseModel, Field, field_validator
 
@@ -25,6 +25,9 @@ class OutlineGenerateRequest(BaseModel):
     )
     subject: Optional[str] = Field(
         None, max_length=100, description="The subject area for the content"
+    )
+    file_urls: Optional[List[str]] = Field(
+        None, description="URLs of uploaded files to use as source material"
     )
 
     def to_dict(self):
@@ -61,6 +64,9 @@ class PresentationGenerateRequest(BaseModel):
     )
     subject: Optional[str] = Field(
         None, max_length=100, description="The subject area for the content"
+    )
+    file_urls: Optional[List[str]] = Field(
+        None, description="URLs of uploaded files to use as source material"
     )
 
     def to_dict(self):
