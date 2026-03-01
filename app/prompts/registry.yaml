@@ -142,6 +142,12 @@ prompts:
   question.context.user:
     path: "question/usr_prompt_context.st"
     format: "st"
+  question.grading.system:
+    path: "question/sys_grading_prompt.st"
+    format: "st"
+  question.grading.user:
+    path: "question/usr_grading_prompt.st"
+    format: "st"
   # Subject-grade specific prompts (Math)
   subject_grade.math.1:
     path: "subject_grade/math/grade_1.st"
