@@ -54,7 +54,7 @@ def generateOutline(
     svc_rag: SlideRagServiceDep,
 ):
     req = outlineGenerateRequest
-    if req.grade is not None and req.subject is not None:
+    if req.grade is not None and req.subject is not None and not req.file_urls:
         try:
             result = svc_rag.make_outline_with_rag(req)
         except ContentMismatchError as e:
@@ -77,7 +77,7 @@ def generateOutline_Stream(
     svc_rag: SlideRagServiceDep,
 ):
     req = outlineGenerateRequest
-    if req.grade is not None and req.subject is not None:
+    if req.grade is not None and req.subject is not None and not req.file_urls:
         try:
             chunks = svc_rag.make_outline_rag_stream(req)
         except ContentMismatchError as e:
@@ -103,7 +103,7 @@ def generatePresentation(
     svc_rag: SlideRagServiceDep,
 ):
     req = presentationGenerateRequest
-    if req.grade is not None and req.subject is not None:
+    if req.grade is not None and req.subject is not None and not req.file_urls:
         try:
             result = svc_rag.make_presentation_with_rag(req)
         except ContentMismatchError as e:
@@ -127,7 +127,7 @@ def generatePresentation_Stream(
 ):
     req = presentationGenerateRequest
     print("Received presentation stream request:", req)
-    if req.grade is not None and req.subject is not None:
+    if req.grade is not None and req.subject is not None and not req.file_urls:
         try:
             chunks = svc_rag.make_presentation_rag_stream(req)
         except ContentMismatchError as e:
@@ -280,7 +280,7 @@ def generateMindmap(
 ):
     req = mindmapGenerateRequest
     print("Received mindmap generation request:", req)
-    if req.grade is not None and req.subject is not None:
+    if req.grade is not None and req.subject is not None and not req.file_urls:
         try:
             result = svc_rag.generate_mindmap_with_rag(req)
         except ContentMismatchError as e:

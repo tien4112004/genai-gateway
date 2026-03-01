@@ -27,7 +27,7 @@ def clear_search_filters():
 
 
 @tool
-def search_mmr(query: str, k: int = 10) -> str:
+def search_mmr(query: str, k: int = 15) -> str:
     """
     Search for relevant educational documents and materials in the knowledge base.
 

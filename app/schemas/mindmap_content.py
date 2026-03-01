@@ -21,6 +21,9 @@ class MindmapGenerateRequest(BaseModel):
     subject: Optional[str] = Field(
         None, max_length=100, description="The subject area for the content"
     )
+    file_urls: Optional[List[str]] = Field(
+        None, description="URLs of uploaded files to use as source material"
+    )
 
     def to_dict(self):
         result = {

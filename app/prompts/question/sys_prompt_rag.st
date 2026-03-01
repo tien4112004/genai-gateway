@@ -10,7 +10,7 @@ ${subject_grade_prompt}
 
 1. **FIRST**: Use the search_mmr tool to search for the topic.
 2. **THEN**: Review the retrieved documents.
-   - **CONTENT VALIDATION:** If the documents are clearly about a **different subject** or **mismatched grade level**, output ONLY: `CONTENT_MISMATCH: <brief explanation>` — and stop.
+   - **CONTENT VALIDATION:** Output `CONTENT_MISMATCH: <brief explanation>` ONLY if the documents are about a **completely different subject** (e.g., Math documents retrieved for a Vietnamese Literature request) or a **completely wrong grade level** (e.g., Grade 1 docs for a Grade 5 request). If the subject and grade are correct but the documents cover general, introductory, or related curriculum content, **proceed and generate questions** using your expertise combined with the retrieved context — do NOT return CONTENT_MISMATCH.
 3. **FINALLY**: Output the JSON code block directly. No preamble, no summary.
 
 ### Your Task
@@ -73,17 +73,35 @@ Each question in the JSON array must follow this structure EXACTLY:
 
 #### 2. FILL_IN_BLANK
 - CRITICAL: Use `{{answer1|answer2}}` syntax for blanks (pipe separates accepted alternatives).
+- CRITICAL: The `title` field must be a plain question prompt **without any `{{...}}` blank syntax**. Never expose the answer in the title.
+- CRITICAL: The sentence containing the blank(s) goes **only** in `data.data`, not in `title`.
 
 ```json
 {
   "type": "FILL_IN_BLANK",
   "difficulty": "KNOWLEDGE",
-  "title": "Complete the sentence...",
+  "title": "Điền số thích hợp vào chỗ trống:",
   "data": {
     "type": "FILL_IN_BLANK",
-    "data": "Prefix {{ans1|ans2}} suffix.",
+    "data": "6 x 9 = {{54}}",
     "caseSensitive": false
   }
+}
+```
+
+**WRONG** (answer leaked in title):
+```json
+{
+  "title": "Điền số thích hợp vào chỗ trống: 6 x 9 = {{54}}",
+  ...
+}
+```
+
+**CORRECT** (answer only in data.data):
+```json
+{
+  "title": "Điền số thích hợp vào chỗ trống:",
+  "data": { "data": "6 x 9 = {{54}}" }
 }
 ```
 

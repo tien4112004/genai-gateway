@@ -1,4 +1,5 @@
 import base64
+import logging
 import os
 import random
 from asyncio import sleep
@@ -16,6 +17,8 @@ from app.schemas.slide_content import (
 )
 from app.schemas.token_usage import TokenUsage
 
+logger = logging.getLogger(__name__)
+
 
 class ContentService:
     def __init__(self, llm_executor: LLMExecutor, prompt_store: PromptStore):
@@ -25,6 +28,73 @@ class ContentService:
 
     def _system(self, key: str, vars: Dict[str, Any] | None) -> str:
         return self.prompt_store.render(key, vars)
+
+    def _build_messages_with_files(
+        self, sys_msg: str, usr_msg: str, file_urls: List[str], provider: str
+    ) -> List:
+        """Build LangChain messages injecting uploaded file content."""
+        from app.utils.file_extractor import extract_from_urls
+
+        logger.info(
+            f"[FILE-GEN] Building messages with {len(file_urls)} file(s), provider={provider}"
+        )
+        for url in file_urls:
+            logger.info(f"[FILE-GEN] File URL: {url}")
+
+        file_contents = extract_from_urls(file_urls)
+        content_parts = [{"type": "text", "text": usr_msg}]
+
+        for i, fc in enumerate(file_contents):
+            if fc.file_type == "image":
+                # Image: send as vision content part (works for Gemini + OpenAI)
+                b64 = base64.b64encode(fc.raw_bytes).decode()
+                content_parts.append(
+                    {
+                        "type": "image_url",
+                        "image_url": {
+                            "url": f"data:{fc.mime_type};base64,{b64}"
+                        },
+                    }
+                )
+                logger.info(
+                    f"[FILE-GEN] File[{i}] → image part mime={fc.mime_type} ({len(fc.raw_bytes)} bytes)"
+                )
+            elif fc.file_type == "pdf" and provider == "google":
+                # Gemini native PDF: handles scanned + digital PDFs
+                b64 = base64.b64encode(fc.raw_bytes).decode()
+                content_parts.append(
+                    {
+                        "type": "media",
+                        "mime_type": "application/pdf",
+                        "data": b64,
+                    }
+                )
+                logger.info(
+                    f"[FILE-GEN] File[{i}] → multimodal PDF part ({len(fc.raw_bytes)} bytes) sent to Gemini"
+                )
+            else:
+                # Text fallback for DOCX/TXT, or non-Gemini providers with PDF
+                if fc.extracted_text.strip():
+                    content_parts[0]["text"] += (
+                        "\n\n---\nREFERENCE DOCUMENT:\n" + fc.extracted_text
+                    )
+                    logger.info(
+                        f"[FILE-GEN] File[{i}] type={fc.file_type} → text injection ({len(fc.extracted_text)} chars)"
+                    )
+                else:
+                    logger.warning(
+                        f"[FILE-GEN] File[{i}] type={fc.file_type} → no text extracted, skipped"
+                    )
+
+        logger.info(
+            f"[FILE-GEN] Final message has {len(content_parts)} content part(s) "
+            f"(1 text + {len(content_parts) - 1} file part(s))"
+        )
+
+        return [
+            SystemMessage(content=sys_msg),
+            HumanMessage(content=content_parts),
+        ]
 
     # Presentation Generation
     def make_presentation_stream(self, request: PresentationGenerateRequest):
@@ -44,13 +114,20 @@ class ContentService:
             request.to_dict(),
         )
 
+        if request.file_urls:
+            messages = self._build_messages_with_files(
+                sys_msg, usr_msg, request.file_urls, request.provider
+            )
+        else:
+            messages = [
+                SystemMessage(content=sys_msg),
+                HumanMessage(content=usr_msg),
+            ]
+
         chunks, token_usage = self.llm_executor.stream(
             provider=request.provider,
             model=request.model,
-            messages=[
-                SystemMessage(content=sys_msg),
-                HumanMessage(content=usr_msg),
-            ],
+            messages=messages,
         )
 
         # Filter out token_usage objects (only check last chunk for efficiency)
@@ -89,13 +166,20 @@ class ContentService:
             request.to_dict(),
         )
 
+        if request.file_urls:
+            messages = self._build_messages_with_files(
+                sys_msg, usr_msg, request.file_urls, request.provider
+            )
+        else:
+            messages = [
+                SystemMessage(content=sys_msg),
+                HumanMessage(content=usr_msg),
+            ]
+
         result, token_usage = self.llm_executor.batch(
             provider=request.provider,
             model=request.model,
-            messages=[
-                SystemMessage(content=sys_msg),
-                HumanMessage(content=usr_msg),
-            ],
+            messages=messages,
         )
 
         # Store token usage for later access
@@ -120,13 +204,20 @@ class ContentService:
             request.to_dict(),
         )
 
+        if request.file_urls:
+            messages = self._build_messages_with_files(
+                sys_msg, usr_msg, request.file_urls, request.provider
+            )
+        else:
+            messages = [
+                SystemMessage(content=sys_msg),
+                HumanMessage(content=usr_msg),
+            ]
+
         chunks, token_usage = self.llm_executor.stream(
             provider=request.provider,
             model=request.model,
-            messages=[
-                SystemMessage(content=sys_msg),
-                HumanMessage(content=usr_msg),
-            ],
+            messages=messages,
         )
 
         # Store token usage for later access
@@ -150,13 +241,20 @@ class ContentService:
             request.to_dict(),
         )
 
+        if request.file_urls:
+            messages = self._build_messages_with_files(
+                sys_msg, usr_msg, request.file_urls, request.provider
+            )
+        else:
+            messages = [
+                SystemMessage(content=sys_msg),
+                HumanMessage(content=usr_msg),
+            ]
+
         result, token_usage = self.llm_executor.batch(
             provider=request.provider,
             model=request.model,
-            messages=[
-                SystemMessage(content=sys_msg),
-                HumanMessage(content=usr_msg),
-            ],
+            messages=messages,
         )
 
         # Store token usage for later access
@@ -359,13 +457,20 @@ class ContentService:
             request.to_dict(),
         )
 
+        if request.file_urls:
+            messages = self._build_messages_with_files(
+                sys_msg, usr_msg, request.file_urls, request.provider
+            )
+        else:
+            messages = [
+                SystemMessage(content=sys_msg),
+                HumanMessage(content=usr_msg),
+            ]
+
         result, token_usage = self.llm_executor.batch(
             provider=request.provider,
             model=request.model,
-            messages=[
-                SystemMessage(content=sys_msg),
-                HumanMessage(content=usr_msg),
-            ],
+            messages=messages,
         )
 
         # Store token usage for later access
