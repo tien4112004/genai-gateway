@@ -1,4 +1,4 @@
-"""Utility for downloading and extracting text from uploaded files (PDF, DOCX, TXT)."""
+"""Utility for downloading and extracting text from uploaded files (PDF, DOCX, TXT, images)."""
 
 import logging
 from dataclasses import dataclass
@@ -9,33 +9,62 @@ import httpx
 logger = logging.getLogger(__name__)
 
 
+_IMAGE_EXTENSIONS = {".jpg", ".jpeg", ".png", ".gif", ".webp", ".bmp"}
+
+_IMAGE_MIME = {
+    ".jpg": "image/jpeg",
+    ".jpeg": "image/jpeg",
+    ".png": "image/png",
+    ".gif": "image/gif",
+    ".webp": "image/webp",
+    ".bmp": "image/bmp",
+}
+
+
 @dataclass
 class FileContent:
-    file_type: str  # "pdf" | "docx" | "txt"
-    raw_bytes: bytes  # original bytes (for Gemini multimodal PDF)
+    file_type: str  # "pdf" | "docx" | "txt" | "image"
+    raw_bytes: bytes  # original bytes (PDF multimodal / image)
     extracted_text: str  # text fallback (DOCX/TXT, or PDF text layer)
     mime_type: str
 
 
-def _detect_type(url: str, raw_bytes: bytes) -> str:
-    """Detect file type from URL suffix first, then magic bytes."""
-    lower = url.lower().split("?")[0]  # strip query params
-    if lower.endswith(".pdf"):
-        return "pdf"
-    if lower.endswith(".docx"):
-        return "docx"
-    if lower.endswith(".doc"):
-        return "docx"
-    if lower.endswith(".txt"):
-        return "txt"
+def _detect_type(url: str, raw_bytes: bytes) -> tuple[str, str]:
+    """Detect file type and MIME type. Returns (file_type, mime_type)."""
+    path = url.lower().split("?")[0]  # strip query params
+
+    # URL extension detection
+    for ext in _IMAGE_EXTENSIONS:
+        if path.endswith(ext):
+            return "image", _IMAGE_MIME[ext]
+    if path.endswith(".pdf"):
+        return "pdf", "application/pdf"
+    if path.endswith(".docx") or path.endswith(".doc"):
+        return (
+            "docx",
+            "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        )
+    if path.endswith(".txt"):
+        return "txt", "text/plain"
 
     # Magic bytes fallback
     if raw_bytes[:4] == b"%PDF":
-        return "pdf"
-    if raw_bytes[:2] == b"PK":  # ZIP-based (DOCX)
-        return "docx"
+        return "pdf", "application/pdf"
+    if raw_bytes[:2] == b"PK":
+        return (
+            "docx",
+            "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        )
+    if raw_bytes[:3] == b"\xff\xd8\xff":
+        return "image", "image/jpeg"
+    if raw_bytes[:4] == b"\x89PNG":
+        return "image", "image/png"
+    if raw_bytes[:4] in (b"GIF8", b"GIF9"):
+        return "image", "image/gif"
+    if raw_bytes[:4] == b"RIFF" and raw_bytes[8:12] == b"WEBP":
+        return "image", "image/webp"
 
-    return "txt"
+    return "txt", "text/plain"
 
 
 def _extract_pdf_text(raw_bytes: bytes) -> str:
@@ -77,18 +106,17 @@ def fetch_and_extract(url: str) -> FileContent:
         resp.raise_for_status()
         raw_bytes = resp.content
 
-    file_type = _detect_type(url, raw_bytes)
+    file_type, mime_type = _detect_type(url, raw_bytes)
 
-    if file_type == "pdf":
+    if file_type == "image":
+        extracted_text = ""  # images are sent as vision parts, not text
+    elif file_type == "pdf":
         extracted_text = _extract_pdf_text(raw_bytes)
-        mime_type = "application/pdf"
     elif file_type == "docx":
         extracted_text = _extract_docx_text(raw_bytes)
-        mime_type = "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
         raw_bytes = b""  # not needed for DOCX
     else:
         extracted_text = raw_bytes.decode("utf-8", errors="ignore")
-        mime_type = "text/plain"
         raw_bytes = b""
 
     logger.info(

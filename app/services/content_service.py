@@ -45,7 +45,21 @@ class ContentService:
         content_parts = [{"type": "text", "text": usr_msg}]
 
         for i, fc in enumerate(file_contents):
-            if fc.file_type == "pdf" and provider == "google":
+            if fc.file_type == "image":
+                # Image: send as vision content part (works for Gemini + OpenAI)
+                b64 = base64.b64encode(fc.raw_bytes).decode()
+                content_parts.append(
+                    {
+                        "type": "image_url",
+                        "image_url": {
+                            "url": f"data:{fc.mime_type};base64,{b64}"
+                        },
+                    }
+                )
+                logger.info(
+                    f"[FILE-GEN] File[{i}] → image part mime={fc.mime_type} ({len(fc.raw_bytes)} bytes)"
+                )
+            elif fc.file_type == "pdf" and provider == "google":
                 # Gemini native PDF: handles scanned + digital PDFs
                 b64 = base64.b64encode(fc.raw_bytes).decode()
                 content_parts.append(
