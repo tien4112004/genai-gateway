@@ -386,6 +386,16 @@ class ModificationService:
                     )  # Limit to 8
                     tree_context += f"Related Sibling Concepts: {siblings}. "
 
+                # Existing children to avoid duplication
+                if (
+                    request.context.existingChildrenContents
+                    and len(request.context.existingChildrenContents) > 0
+                ):
+                    existing = ", ".join(
+                        request.context.existingChildrenContents[:10]
+                    )  # Limit to 10
+                    tree_context += f"Existing Children (DO NOT duplicate these): {existing}. "
+
                 tree_context += (
                     f"Current Level: {request.context.currentLevel}. "
                 )
