@@ -27,13 +27,26 @@ services:
       # Google Cloud Service Account
       - GOOGLE_APPLICATION_CREDENTIALS=/app/secrets/gcp-service-account.json
       # API Keys
+      # Application
+      - BASE_URL=${BASE_URL:-http://localhost:8080}
+      # API Keys
       - GOOGLE_API_KEY=${GOOGLE_API_KEY}
       - OPENAI_API_KEY=${OPENAI_API_KEY:-}
       - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
+      - BANANA_API_KEY=${BANANA_API_KEY:-}
       - OPENROUTER_API_KEY=${OPENROUTER_API_KEY:-}
       - DEEPSEEK_API_KEY=${DEEPSEEK_API_KEY:-}
+      # VertexAI
       - VERTEX_PROJECT_ID=${VERTEX_PROJECT_ID:-}
       - VERTEX_LOCATION=${VERTEX_LOCATION:-}
+      # Database (PGVector)
+      - PG_CONNECTION_STRING=${PG_CONNECTION_STRING}
+      - COLLECTION_NAME=${COLLECTION_NAME:-document_embeddings}
+      - EMBEDDING_MODEL=${EMBEDDING_MODEL:-text-embedding-004}
+      # LocalAI
+      - LOCALAI_BASE_URL=${LOCALAI_BASE_URL:-http://localhost:8083}
+      - LOCALAI_API_KEY=${LOCALAI_API_KEY:-sk-local}
+      # Phoenix / Observability
       - PHOENIX_SECRET=${PHOENIX_SECRET}
       - PHOENIX_SQL_DATABASE_URL=${PHOENIX_SQL_DATABASE_URL}
       - PHOENIX_PROJECT_NAME=${PHOENIX_PROJECT_NAME}
