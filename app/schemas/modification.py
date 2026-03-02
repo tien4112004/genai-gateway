@@ -73,6 +73,9 @@ class TreeContext(BaseModel):
     fullAncestryPath: Optional[List[str]] = (
         None  # Ordered from root to immediate parent
     )
+    existingChildrenContents: Optional[List[str]] = (
+        None  # Current children of the node being expanded
+    )
 
 
 class RefineNodeRequest(BaseModel):
