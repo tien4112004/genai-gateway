@@ -16,6 +16,13 @@ Prompt loading and rendering with variable substitution.
 """
 
 
+class _DefaultDict(dict):
+    """Dict that returns an empty string for missing keys during template substitution."""
+
+    def __missing__(self, key: str) -> str:
+        return ""
+
+
 @dataclass
 class PromptSpec:
     key: str
@@ -114,6 +121,6 @@ class PromptStore:
                 "safety_rules", self._load_text(safety_path).strip()
             )
 
-        rendered_text = Template(text).substitute(**merged)
+        rendered_text = Template(text).substitute(_DefaultDict(merged))
 
         return rendered_text
