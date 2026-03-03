@@ -30,6 +30,7 @@ from app.schemas.slide_content import (
     OutlineGenerateRequest,
     PresentationGenerateRequest,
 )
+from app.schemas.slide_generation import GenerateSlidesRequest
 from app.schemas.token_usage import TokenUsage
 from app.services.base_rag_service import ContentMismatchError
 from app.utils.server_sent_event import sse_json_by_json, sse_word_by_word
@@ -143,6 +144,53 @@ def generatePresentation_Stream(
         return EventSourceResponse(
             sse_json_by_json(request, chunks, token_usage), ping=None
         )
+
+
+@router.post("/slides/generate")
+def generate_slides(
+    request: GenerateSlidesRequest,
+    svc: ContentServiceDep,
+):
+    """Generate slides for insertion into an existing presentation (batch mode)."""
+    logger.info(
+        f"[SLIDES/GENERATE] Generating {request.slide_count} slides, "
+        f"model={request.model}, provider={request.provider}"
+    )
+
+    result = svc.generate_slides(request)
+    token_usage = svc.last_token_usage
+    logger.info(
+        f"[SLIDES/GENERATE] Token Usage: input={token_usage.input_tokens}, "
+        f"output={token_usage.output_tokens}, total={token_usage.total_tokens}, "
+        f"model={token_usage.model}"
+    )
+
+    # Parse JSON array of slide schemas
+    schemas = []
+    raw = result.strip()
+    # Remove markdown code fences if present
+    if raw.startswith("```"):
+        first_newline = raw.index("\n") if "\n" in raw else len(raw)
+        raw = raw[first_newline + 1 :]
+    if raw.endswith("```"):
+        raw = raw[: raw.rfind("```")].strip()
+
+    try:
+        parsed = json.loads(raw)
+        if isinstance(parsed, list):
+            schemas = parsed
+        elif isinstance(parsed, dict):
+            schemas = [parsed]
+        else:
+            logger.warning(
+                f"[SLIDES/GENERATE] Unexpected JSON type: {type(parsed)}"
+            )
+    except json.JSONDecodeError:
+        logger.warning(
+            f"[SLIDES/GENERATE] Failed to parse response as JSON: {raw[:200]}"
+        )
+
+    return GenerateResponse(data={"schemas": schemas}, token_usage=token_usage)
 
 
 # Mock endpoints for testing without LLM calls

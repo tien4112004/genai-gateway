@@ -29,6 +29,14 @@ prompts:
   mindmap.user:
     path: "mindmap/usr_prompt.st"
     format: "st"
+  # Slide generation (in-editor)
+  slide_generation.system:
+    path: "slide_generation/sys_prompt.st"
+    format: "st"
+  slide_generation.user:
+    path: "slide_generation/usr_prompt.st"
+    format: "st"
+
   # Slide content operations
   modification.slide.refine:
     path: "modification/slide/refine_content.st"

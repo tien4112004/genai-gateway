@@ -15,6 +15,7 @@ from app.schemas.slide_content import (
     OutlineGenerateRequest,
     PresentationGenerateRequest,
 )
+from app.schemas.slide_generation import GenerateSlidesRequest
 from app.schemas.token_usage import TokenUsage
 
 logger = logging.getLogger(__name__)
@@ -183,6 +184,36 @@ class ContentService:
         )
 
         # Store token usage for later access
+        self.last_token_usage = token_usage
+        return result
+
+    # Slide Generation (in-editor, batch mode)
+    def generate_slides(self, request: GenerateSlidesRequest) -> str:
+        """Generate a small set of slides for insertion into an existing presentation.
+
+        Uses batch mode (not streaming) - returns all slides at once as NDJSON.
+        """
+        sys_msg = self._system(
+            "slide_generation.system",
+            None,
+        )
+
+        usr_msg = self._system(
+            "slide_generation.user",
+            request.to_dict(),
+        )
+
+        messages = [
+            SystemMessage(content=sys_msg),
+            HumanMessage(content=usr_msg),
+        ]
+
+        result, token_usage = self.llm_executor.batch(
+            provider=request.provider,
+            model=request.model,
+            messages=messages,
+        )
+
         self.last_token_usage = token_usage
         return result
 
