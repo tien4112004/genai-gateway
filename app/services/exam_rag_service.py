@@ -27,7 +27,7 @@ class ExamRagService(BaseRagService):
     """
 
     def _extract_json(self, result: str) -> str:
-        """Extract JSON from potential markdown code blocks.
+        """Extract JSON from potential markdown code blocks or raw text.
 
         Args:
             result: Result string that may contain JSON in markdown code blocks
@@ -36,10 +36,27 @@ class ExamRagService(BaseRagService):
             Extracted JSON string
         """
         result_text = result.strip()
-        code_fence_pattern = r"```(?:json)?\s*\n?(.*?)\n?```"
-        match = re.search(code_fence_pattern, result_text, re.DOTALL)
+
+        # Try triple backtick code fence (```json ... ``` or ``` ... ```)
+        triple_fence_pattern = r"```(?:json)?\s*\n?(.*?)\n?```"
+        match = re.search(triple_fence_pattern, result_text, re.DOTALL)
         if match:
             return match.group(1).strip()
+
+        # Try single backtick code fence (`json ... ` or ` ... `)
+        single_fence_pattern = r"`(?:json)?\s*\n?([\[{].*?)\n?`"
+        match = re.search(single_fence_pattern, result_text, re.DOTALL)
+        if match:
+            return match.group(1).strip()
+
+        # Fallback: find the first JSON array or object in the raw text
+        for start_char, end_char in [("[", "]"), ("{", "}")]:
+            start_idx = result_text.find(start_char)
+            if start_idx != -1:
+                end_idx = result_text.rfind(end_char)
+                if end_idx > start_idx:
+                    return result_text[start_idx : end_idx + 1].strip()
+
         return result_text
 
     def generate_matrix_with_rag(
