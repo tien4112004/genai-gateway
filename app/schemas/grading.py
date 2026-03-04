@@ -8,23 +8,23 @@ from pydantic import BaseModel, Field
 class GradeQuestionRequest(BaseModel):
     """Request to grade an open-ended question."""
 
-    questionContent: str = Field(
-        ..., description="The main question/prompt"
+    questionContent: Optional[str] = Field(
+        default="", description="The main question/prompt"
     )
     questionExplaination: Optional[str] = Field(
         default="", description="Additional explanation or context for the question"
     )
-    answerData: str = Field(
-        ..., description="The student's answer to grade"
+    answerData: Optional[str] = Field(
+        default="", description="The student's answer to grade"
     )
     context: Optional[str] = Field(
         default="", description="A reading passage or related context (may be empty)"
     )
     maxScore: float = Field(
-        ..., gt=0, description="Maximum possible score for this question"
+        default=10, gt=0, description="Maximum possible score for this question"
     )
-    grade: int = Field(
-        ..., ge=1, le=5, description="Student's grade level (1-5)"
+    grade: Optional[int] = Field(
+        default=None, ge=1, le=5, description="Student's grade level (1-5)"
     )
     chapter: Optional[str] = Field(
         default="", description="Chapter or topic of the question"
