@@ -7,7 +7,10 @@ from fastapi import APIRouter, HTTPException, Request, status
 from fastapi.responses import JSONResponse
 from sse_starlette.sse import EventSourceResponse
 
-from app.core.fastapi_depends import ExamServiceDep
+from app.core.fastapi_depends import (
+    ExamServiceDep,
+    TeacherSystemPromptServiceDep,
+)
 from app.schemas.exam_content import (
     ExamMatrix,
     GenerateMatrixRequest,
@@ -17,13 +20,20 @@ from app.schemas.exam_content import (
     MatrixItem,
     Question,
 )
+from app.utils.teacher_context import (
+    _teacher_system_prompt,
+    set_teacher_prompt,
+)
 
 router = APIRouter(tags=["exams"])
 
 
 @router.post("/exams/generate-matrix", response_model=ExamMatrix)
 def generate_exam_matrix(
-    request_body: GenerateMatrixRequest, svc: ExamServiceDep
+    http_request: Request,
+    request_body: GenerateMatrixRequest,
+    svc: ExamServiceDep,
+    teacher_svc: TeacherSystemPromptServiceDep,
 ):
     """
     Generate a 3D exam matrix based on topics, difficulties, and question types.
@@ -36,6 +46,8 @@ def generate_exam_matrix(
     Each cell contains {count, points} representing the number of questions
     and total points for that combination.
     """
+    teacher_id = http_request.headers.get("X-User-ID")
+    token = set_teacher_prompt(teacher_svc.get_prompt(teacher_id))
     try:
         result = svc.generate_matrix(request_body)
         return result
@@ -49,6 +61,8 @@ def generate_exam_matrix(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to generate matrix: {str(e)}",
         )
+    finally:
+        _teacher_system_prompt.reset(token)
 
 
 # Question Generation Endpoints
@@ -57,7 +71,10 @@ def generate_exam_matrix(
     response_class=JSONResponse,
 )
 def generate_questions_from_matrix(
-    request_body: GenerateQuestionsFromMatrixRequest, svc: ExamServiceDep
+    http_request: Request,
+    request_body: GenerateQuestionsFromMatrixRequest,
+    svc: ExamServiceDep,
+    teacher_svc: TeacherSystemPromptServiceDep,
 ):
     """
     Generate questions from matrix - returns raw LLM JSON response.
@@ -72,6 +89,8 @@ def generate_questions_from_matrix(
     Returns:
         Raw JSON string with questions array from LLM
     """
+    teacher_id = http_request.headers.get("X-User-ID")
+    token = set_teacher_prompt(teacher_svc.get_prompt(teacher_id))
     try:
         # Service returns raw JSON string
         raw_json = svc.generate_questions_from_matrix(request_body)
@@ -91,3 +110,5 @@ def generate_questions_from_matrix(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to generate questions: {str(e)}",
         )
+    finally:
+        _teacher_system_prompt.reset(token)

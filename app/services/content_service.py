@@ -16,6 +16,7 @@ from app.schemas.slide_content import (
     PresentationGenerateRequest,
 )
 from app.schemas.token_usage import TokenUsage
+from app.utils.teacher_context import build_system_with_teacher_prompt
 
 logger = logging.getLogger(__name__)
 
@@ -27,7 +28,8 @@ class ContentService:
         self.last_token_usage = None
 
     def _system(self, key: str, vars: Dict[str, Any] | None) -> str:
-        return self.prompt_store.render(key, vars)
+        base = self.prompt_store.render(key, vars)
+        return build_system_with_teacher_prompt(base)
 
     def _build_messages_with_files(
         self, sys_msg: str, usr_msg: str, file_urls: List[str], provider: str
