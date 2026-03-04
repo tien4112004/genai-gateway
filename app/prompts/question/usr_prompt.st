@@ -17,6 +17,6 @@ ${prompt}
 - Ensure each question follows the schema in the system prompt
 - For grade level ${grade}, use age-appropriate language and concepts
 - For subject ${subject}, use appropriate language (Vietnamese or English)
-- Return ONLY a valid JSON array. Do not include any thinking, reasoning, or extra text before or after the JSON.
+- Return ONLY a valid JSON array. Your response must start with `[` and end with `]`. No preamble, no code fences, no extra text.
 
 Generate the questions now.
