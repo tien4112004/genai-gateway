@@ -420,7 +420,9 @@ class ContentService:
     def generate_image(self, request: ImageGenerateRequest):
         """Generate image based on text description"""
 
-        usr_msg = self._system("image.user", {"prompt": request.prompt})
+        usr_msg = self.prompt_store.render(
+            "image.user", {"prompt": request.prompt}
+        )
 
         result = self.llm_executor.generate_image(
             provider=request.provider,

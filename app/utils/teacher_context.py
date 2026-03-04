@@ -30,8 +30,8 @@ def build_system_with_teacher_prompt(base_prompt: str) -> str:
     if not teacher_prompt:
         return base_prompt
     return (
-        f"[Hướng dẫn của giáo viên / Teacher Instructions]\n"
+        f"[Teacher Instructions]\n"
         f"{teacher_prompt}\n\n"
-        f"[Hướng dẫn hệ thống / System Instructions]\n"
+        f"[System Instructions]\n"
         f"{base_prompt}"
     )

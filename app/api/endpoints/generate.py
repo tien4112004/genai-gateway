@@ -303,64 +303,50 @@ async def generatePresentation_Mock_Stream(
 
 @router.post("/image/generate", response_model=ImageGenerateResponse)
 def generate_image(
-    http_request: Request,
     imageGenerateRequest: ImageGenerateRequest,
     svc: ContentServiceDep,
-    teacher_svc: TeacherSystemPromptServiceDep,
 ):
     print("Received image generation request:", imageGenerateRequest)
-    teacher_id = http_request.headers.get("X-User-ID")
-    token = set_teacher_prompt(teacher_svc.get_prompt(teacher_id))
-    try:
-        result = svc.generate_image(imageGenerateRequest)
-        if "error" in result and result["error"]:
-            raise HTTPException(
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail=result["error"],
-            )
-
-        logger.info(
-            f"[IMAGE/GENERATE] Images generated: count={result['count']}, model={imageGenerateRequest.model} (token_usage not available for image generation)"
+    result = svc.generate_image(imageGenerateRequest)
+    if "error" in result and result["error"]:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=result["error"],
         )
-        return {
-            "images": result["images"],
-            "count": result["count"],
-            "error": None,
-            "token_usage": None,
-        }
-    finally:
-        _teacher_system_prompt.reset(token)
+
+    logger.info(
+        f"[IMAGE/GENERATE] Images generated: count={result['count']}, model={imageGenerateRequest.model} (token_usage not available for image generation)"
+    )
+    return {
+        "images": result["images"],
+        "count": result["count"],
+        "error": None,
+        "token_usage": None,
+    }
 
 
 @router.post("/image/generate/mock", response_model=ImageGenerateResponse)
 def generate_image_mock(
-    http_request: Request,
     imageGenerateRequest: ImageGenerateRequest,
     svc: ContentServiceDep,
-    teacher_svc: TeacherSystemPromptServiceDep,
 ):
     print("Received mock image generation request:", imageGenerateRequest)
-    teacher_id = http_request.headers.get("X-User-ID")
-    token = set_teacher_prompt(teacher_svc.get_prompt(teacher_id))
-    try:
-        result = svc.generate_image_mock(imageGenerateRequest)
-        if "error" in result and result["error"]:
-            raise HTTPException(
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail=result["error"],
-            )
-
-        logger.info(
-            f"[IMAGE/GENERATE/MOCK] Images generated: count={result['count']}, model={imageGenerateRequest.model} (token_usage not available for image generation)"
+    result = svc.generate_image_mock(imageGenerateRequest)
+    if "error" in result and result["error"]:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=result["error"],
         )
-        return {
-            "images": result["images"],
-            "count": result["count"],
-            "error": None,
-            "token_usage": None,
-        }
-    finally:
-        _teacher_system_prompt.reset(token)
+
+    logger.info(
+        f"[IMAGE/GENERATE/MOCK] Images generated: count={result['count']}, model={imageGenerateRequest.model} (token_usage not available for image generation)"
+    )
+    return {
+        "images": result["images"],
+        "count": result["count"],
+        "error": None,
+        "token_usage": None,
+    }
 
 
 @router.post("/mindmap/generate")
