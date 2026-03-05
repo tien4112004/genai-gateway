@@ -21,6 +21,9 @@ class MindmapGenerateRequest(BaseModel):
     subject: Optional[str] = Field(
         None, max_length=100, description="The subject area for the content"
     )
+    chapter: Optional[str] = Field(
+        None, description="The chapter name for the content"
+    )
     file_urls: Optional[List[str]] = Field(
         None, description="URLs of uploaded files to use as source material"
     )
@@ -31,6 +34,9 @@ class MindmapGenerateRequest(BaseModel):
             "language": self.language,
             "maxDepth": self.maxDepth,
             "maxBranchesPerNode": self.maxBranchesPerNode,
+            "chapter_context": (
+                f"\n- Chapter: {self.chapter}" if self.chapter else ""
+            ),
         }
         if self.grade:
             result["grade"] = self.grade
