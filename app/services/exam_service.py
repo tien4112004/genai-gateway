@@ -33,6 +33,7 @@ from app.schemas.exam_content import (
     TopicWithQuestions,
     UsedContext,
 )
+from app.utils.teacher_context import build_system_with_teacher_prompt
 
 logger = logging.getLogger(__name__)
 
@@ -46,7 +47,8 @@ class ExamService:
 
     def _system(self, key: str, vars: Dict[str, Any] | None) -> str:
         """Render a system prompt from the prompt store."""
-        return self.prompt_store.render(key, vars)
+        base = self.prompt_store.render(key, vars)
+        return build_system_with_teacher_prompt(base)
 
     # Matrix Generation
     def generate_matrix(self, request: GenerateMatrixRequest) -> ExamMatrix:

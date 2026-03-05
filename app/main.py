@@ -18,12 +18,18 @@ from app.prompts.loader import PromptStore
 from app.repositories.document_embeddings_repository import (
     DocumentEmbeddingsRepository,
 )
+from app.repositories.teacher_system_prompt_repository import (
+    TeacherSystemPromptRepository,
+)
 from app.services.content_rag_service import ContentRagService
 from app.services.content_service import ContentService
 from app.services.exam_rag_service import ExamRagService
 from app.services.exam_service import ExamService
 from app.services.mindmap_rag_service import MindmapRagService
 from app.services.slide_rag_service import SlideRagService
+from app.services.teacher_system_prompt_service import (
+    TeacherSystemPromptService,
+)
 
 logger = logging.getLogger("uvicorn.error")
 
@@ -79,7 +85,15 @@ async def lifespan(app: FastAPI):
         prompt_store=prompt_store,
     )
 
+    teacher_prompt_repo = TeacherSystemPromptRepository(
+        pg_connection_string=settings.pg_connection_string
+    )
+    teacher_prompt_service = TeacherSystemPromptService(
+        repo=teacher_prompt_repo
+    )
+
     app.state.settings = settings
+    app.state.teacher_prompt_service = teacher_prompt_service
     app.state.content_service = content_service
     app.state.content_rag_service = content_rag_service
     app.state.slide_rag_service = slide_rag_service

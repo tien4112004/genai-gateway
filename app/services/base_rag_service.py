@@ -4,6 +4,7 @@ from app.llms.executor import LLMExecutor
 from app.prompts.loader import PromptStore
 from app.prompts.subject_prompt_router import get_subject_grade_prompt_key
 from app.schemas.token_usage import TokenUsage
+from app.utils.teacher_context import build_system_with_teacher_prompt
 
 
 class ContentMismatchError(Exception):
@@ -34,7 +35,8 @@ class BaseRagService:
         Returns:
             Rendered prompt string
         """
-        return self.prompt_store.render(key, vars)
+        base = self.prompt_store.render(key, vars)
+        return build_system_with_teacher_prompt(base)
 
     def _system_with_subject_grade(
         self,
@@ -78,7 +80,8 @@ class BaseRagService:
         vars["subject_grade_prompt"] = subject_grade_prompt
 
         # Render the base template with the injected subject-grade prompt
-        return self.prompt_store.render(key, vars)
+        result = self.prompt_store.render(key, vars)
+        return build_system_with_teacher_prompt(result)
 
     @staticmethod
     def _check_content_mismatch(result: dict) -> None:

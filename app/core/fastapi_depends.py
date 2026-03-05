@@ -12,6 +12,9 @@ from app.services.exam_rag_service import ExamRagService
 from app.services.exam_service import ExamService
 from app.services.mindmap_rag_service import MindmapRagService
 from app.services.slide_rag_service import SlideRagService
+from app.services.teacher_system_prompt_service import (
+    TeacherSystemPromptService,
+)
 
 
 def get_logger():
@@ -53,7 +56,15 @@ def get_exam_rag_service(request: Request) -> ExamRagService:
     return request.app.state.exam_rag_service
 
 
+def get_teacher_prompt_service(request: Request) -> TeacherSystemPromptService:
+    """Get the teacher system prompt service."""
+    return request.app.state.teacher_prompt_service
+
+
 ExamServiceDep = Annotated[ExamService, Depends(get_exam_service)]
+TeacherSystemPromptServiceDep = Annotated[
+    TeacherSystemPromptService, Depends(get_teacher_prompt_service)
+]
 ContentRagServiceDep = Annotated[
     ContentRagService, Depends(get_content_rag_service)
 ]
