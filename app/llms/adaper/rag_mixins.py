@@ -68,20 +68,7 @@ class RAGAdapterMixin:
             # Ensure content is always a string
             content = ""
             if final_message:
-                if isinstance(final_message.content, str):
-                    content = final_message.content
-                elif isinstance(final_message.content, list):
-                    # Handle structured content (list of blocks)
-                    content = "".join(
-                        (
-                            block.get("text", str(block))
-                            if isinstance(block, dict)
-                            else str(block)
-                        )
-                        for block in final_message.content
-                    )
-                else:
-                    content = str(final_message.content)
+                content = self._extract_text_content(final_message.content)
 
             result = {
                 "answer": content,
@@ -172,8 +159,9 @@ class RAGAdapterMixin:
                 if chunk.tool_calls:
                     continue
 
-                if chunk.content and isinstance(chunk.content, str):
-                    yield chunk.content
+                text = self._extract_text_content(chunk.content)
+                if text:
+                    yield text
 
             # Final token usage yield
             yield TokenUsage(
@@ -186,6 +174,30 @@ class RAGAdapterMixin:
 
         finally:
             clear_search_filters()
+
+    @staticmethod
+    def _extract_text_content(content) -> str:
+        """Extract plain text from an AIMessage content value.
+
+        Handles three forms returned by LangChain providers:
+        - str: returned as-is
+        - list: each item is either a dict block or a raw string.
+          Dict blocks with ``type == "text"`` contribute their ``text`` value;
+          thinking/signature blocks (``type != "text"``) are skipped.
+        - anything else: coerced with str()
+        """
+        if isinstance(content, str):
+            return content
+        if isinstance(content, list):
+            parts = []
+            for block in content:
+                if isinstance(block, dict):
+                    if block.get("type", "text") == "text":
+                        parts.append(block.get("text", ""))
+                else:
+                    parts.append(str(block))
+            return "".join(parts)
+        return str(content) if content else ""
 
     def _format_source_documents(
         self, source_documents: List[Any]
