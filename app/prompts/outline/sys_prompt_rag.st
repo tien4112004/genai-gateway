@@ -24,6 +24,7 @@ Produce slide-ready lesson outlines that are safe, inclusive, factual, and engag
 2. **THEN**: Review the retrieved documents to understand key concepts and facts.
    - **CONTENT VALIDATION:** If the documents are clearly about a **different subject** (e.g., Math documents when the topic is a Literature story) or a **mismatched grade level**, output ONLY: `CONTENT_MISMATCH: <brief explanation>` — and stop. Do not generate any content. If documents are partially relevant or literary in nature, proceed normally.
 3. **FINALLY**: Create the outline using information from the documents.
+   - **CRITICAL**: Use the retrieved documents as your knowledge source only. Do NOT reference them in the output. Slide titles and bullets must never contain "According to the document", "The textbook states", "Document 1 says", or any similar phrase. Write all content as self-contained educational statements a teacher would naturally say.
 
 ### Requirement
 1. You must generate the exact number of slides the user requests. Each slide is separated by `---`.
