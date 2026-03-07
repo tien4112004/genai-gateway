@@ -4,7 +4,7 @@ Parameters
 - Language: ${language}
 - Target age: children ages 6 to 11
 - Slide count: ${slide_count}
-- Learning objective: Students grasp the key ideas and can explain the **${topic}** simply.
+- Learning objective: Students grasp the key ideas and can explain the **${topic}** simply.${chapter_context}
 
 Requirements
 - Follow the STRICT output contract.

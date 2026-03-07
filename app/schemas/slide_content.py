@@ -26,6 +26,9 @@ class OutlineGenerateRequest(BaseModel):
     subject: Optional[str] = Field(
         None, max_length=100, description="The subject area for the content"
     )
+    chapter: Optional[str] = Field(
+        None, description="The chapter name for the content"
+    )
     file_urls: Optional[List[str]] = Field(
         None, description="URLs of uploaded files to use as source material"
     )
@@ -40,6 +43,9 @@ class OutlineGenerateRequest(BaseModel):
             "grade": self.grade or "",
             "subject_name": SUBJECT_NAME_MAP.get(
                 self.subject, self.subject or ""
+            ),
+            "chapter_context": (
+                f"\n- Chapter: {self.chapter}" if self.chapter else ""
             ),
         }
         if self.subject:
@@ -65,6 +71,9 @@ class PresentationGenerateRequest(BaseModel):
     subject: Optional[str] = Field(
         None, max_length=100, description="The subject area for the content"
     )
+    chapter: Optional[str] = Field(
+        None, description="The chapter name for the content"
+    )
     file_urls: Optional[List[str]] = Field(
         None, description="URLs of uploaded files to use as source material"
     )
@@ -77,6 +86,9 @@ class PresentationGenerateRequest(BaseModel):
             "slide_count": self.slide_count,
             "outline": self.outline,
             "meta_data": self.meta_data,
+            "chapter_context": (
+                f"\n- Chapter: {self.chapter}" if self.chapter else ""
+            ),
         }
         if self.grade:
             result["grade"] = self.grade

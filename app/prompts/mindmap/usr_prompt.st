@@ -6,7 +6,7 @@ Inputs:
 - **Language:** ${language}
 - **Maximum Depth (upper limit, not a target):** ${maxDepth}
 - **Maximum Branches Per Node (upper limit, not a target):** ${maxBranchesPerNode}
-- **Tree Context:** ${tree_context}
+- **Tree Context:** ${tree_context}${chapter_context}
 
 Requirements:
 

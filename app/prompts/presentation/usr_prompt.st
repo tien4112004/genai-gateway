@@ -4,7 +4,7 @@ Inputs:
 - Language: ${language}
 - Target age: children ages 6 to 11
 - Slide count: ${slide_count}
-- Learning objective: Students can understand the key ideas of the presentation and can explain it easily.
+- Learning objective: Students can understand the key ideas of the presentation and can explain it easily.${chapter_context}
 
 Approved outline (Markdown):
 ---
