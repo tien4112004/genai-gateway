@@ -93,10 +93,11 @@ The `group` field is the group index from the request (0 for first group, 1 for 
 - COMPREHENSION (thông hiểu) — Understanding, interpretation (point: 2.0)
 - APPLICATION (vận dụng) — Analysis, problem-solving (point: 3.0)
 
+${curriculum_context}
 ## Requirements
 
 1. **Age Appropriateness**: Match cognitive abilities of the grade level
 2. **Language**: Vietnamese for T and TV subjects; English for TA
 3. **For CONTEXT groups**: Questions must be directly based on the provided reading passage
-4. **For NORMAL groups**: Questions are based on curriculum knowledge of the topic
+4. **For NORMAL groups**: If curriculum materials are provided above, questions MUST be grounded in those materials. Otherwise, use general curriculum knowledge of the topic.
 5. **Output**: A pure JSON array — no markdown, no preamble, no extra text

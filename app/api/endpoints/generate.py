@@ -589,13 +589,14 @@ def generate_questions(
 def generate_questions_by_topic(
     http_request: Request,
     request: GenerateQuestionsByTopicRequest,
-    svc: ExamServiceDep,
+    svc: ExamRagServiceDep,
     teacher_svc: TeacherSystemPromptServiceDep,
 ):
     """
     Generate questions for a single topic from the assignment matrix.
 
-    Supports context-based groups (with reading passage) and normal groups.
+    CONTEXT groups use the provided reading passage directly.
+    NORMAL groups use RAG to retrieve curriculum materials (if available).
     Uses JSON mode — returns raw JSON array, no markdown wrapping.
 
     Each question in the response has a `group` field (0-based index) that the
