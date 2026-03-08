@@ -156,6 +156,12 @@ prompts:
   question.grading.user:
     path: "question/usr_grading_prompt.st"
     format: "st"
+  question.by_topic.system:
+    path: "question/sys_prompt_by_topic.st"
+    format: "st"
+  question.by_topic.user:
+    path: "question/usr_prompt_by_topic.st"
+    format: "st"
   # Subject-grade specific prompts (Math)
   subject_grade.math.1:
     path: "subject_grade/math/grade_1.st"

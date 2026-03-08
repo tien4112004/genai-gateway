@@ -12,8 +12,16 @@ class GeminiAdapter(RAGAdapterMixin):
         # REQUIRES: GOOGLE_API_KEY in env
         self.model_name = model_name
         self.provider = "google"
+        # Extract json_mode flag (not a LangChain param)
+        json_mode = params.pop("json_mode", False)
+        model_kwargs = (
+            {"response_mime_type": "application/json"} if json_mode else {}
+        )
         self.client = ChatGoogleGenerativeAI(
-            model=model_name, **params, convert_system_message_to_human=True
+            model=model_name,
+            **params,
+            convert_system_message_to_human=True,
+            model_kwargs=model_kwargs if model_kwargs else None,
         )
 
     def run(

@@ -38,7 +38,9 @@ class LLMExecutor:
         self, provider: str, model: str, messages, **params
     ) -> Tuple[str, TokenUsage]:
         adapter_class = self._text_adapter(provider)
-        adapter = adapter_class(model_name=model)
+        # Extract adapter constructor params before passing to run()
+        json_mode = params.pop("json_mode", False)
+        adapter = adapter_class(model_name=model, json_mode=json_mode)
         return adapter.run(model=model, messages=messages, **params)
 
     def stream(
