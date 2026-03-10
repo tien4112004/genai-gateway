@@ -4,6 +4,7 @@ import logging
 from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, Request, status
+from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 from sse_starlette.sse import EventSourceResponse
 
@@ -18,6 +19,7 @@ from app.core.fastapi_depends import (
 from app.schemas.exam_content import (
     ExamMatrix,
     GenerateMatrixRequest,
+    GenerateQuestionsByTopicRequest,
     GenerateQuestionsFromContextRequest,
     GenerateQuestionsFromTopicRequest,
     Question,
@@ -543,7 +545,9 @@ def generate_questions(
                     detail=f"Prompt template not found: {str(e)}",
                 )
             except Exception as e:
-                logger.error(f"[QUESTIONS/GENERATE] Error: {str(e)}")
+                logger.error(
+                    f"[QUESTIONS/GENERATE] Error: {str(e)}", exc_info=True
+                )
                 raise HTTPException(
                     status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                     detail=f"Failed to generate questions: {str(e)}",
@@ -574,11 +578,60 @@ def generate_questions(
                     detail=f"Prompt template not found: {str(e)}",
                 )
             except Exception as e:
-                logger.error(f"[QUESTIONS/GENERATE] Error: {str(e)}")
+                logger.error(
+                    f"[QUESTIONS/GENERATE] Error: {str(e)}", exc_info=True
+                )
                 raise HTTPException(
                     status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                     detail=f"Failed to generate questions: {str(e)}",
                 )
+    finally:
+        _teacher_system_prompt.reset(token)
+
+
+@router.post("/questions/generate-by-topic", response_class=JSONResponse)
+def generate_questions_by_topic(
+    http_request: Request,
+    request: GenerateQuestionsByTopicRequest,
+    svc: ExamRagServiceDep,
+    teacher_svc: TeacherSystemPromptServiceDep,
+):
+    """
+    Generate questions for a single topic from the assignment matrix.
+
+    CONTEXT groups use the provided reading passage directly.
+    NORMAL groups use RAG to retrieve curriculum materials (if available).
+    Uses JSON mode — returns raw JSON array, no markdown wrapping.
+
+    Each question in the response has a `group` field (0-based index) that the
+    backend uses to assign contextId to context-based questions.
+    """
+    logger.info(
+        f"[QUESTIONS/GENERATE-BY-TOPIC] topic: {request.topic_name}, "
+        f"grade: {request.grade}, groups: {len(request.groups)}"
+    )
+    teacher_id = http_request.headers.get("X-User-ID")
+    token = set_teacher_prompt(teacher_svc.get_prompt(teacher_id))
+    try:
+        raw_json = svc.generate_questions_by_topic(request)
+        parsed = json.loads(raw_json)
+        logger.info(
+            f"[QUESTIONS/GENERATE-BY-TOPIC] Generated {len(parsed) if isinstance(parsed, list) else '?'} questions"
+        )
+        return JSONResponse(content=parsed)
+    except ValueError as e:
+        logger.error(
+            f"[QUESTIONS/GENERATE-BY-TOPIC] Validation error: {str(e)}"
+        )
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)
+        )
+    except Exception as e:
+        logger.error(f"[QUESTIONS/GENERATE-BY-TOPIC] Error: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to generate questions: {str(e)}",
+        )
     finally:
         _teacher_system_prompt.reset(token)
 

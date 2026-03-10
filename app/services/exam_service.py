@@ -16,6 +16,7 @@ from app.schemas.exam_content import (
     DimensionTopic,
     ExamMatrix,
     GenerateMatrixRequest,
+    GenerateQuestionsByTopicRequest,
     GenerateQuestionsFromContextRequest,
     GenerateQuestionsFromMatrixRequest,
     GenerateQuestionsFromMatrixResponse,
@@ -849,3 +850,132 @@ class ExamService:
         except json.JSONDecodeError as e:
             logger.error(f"[EXAM_SERVICE] JSON parsing error: {e}")
             raise ValueError(f"Invalid JSON response from LLM: {e}")
+
+    def generate_questions_by_topic(
+        self, request: GenerateQuestionsByTopicRequest
+    ) -> str:
+        """
+        Generate questions for a single topic from the matrix.
+
+        Supports mixed groups: one CONTEXT group (with reading passage) and/or
+        one NORMAL group. Uses JSON mode to guarantee valid JSON output without
+        markdown wrapping.
+
+        Returns:
+            Raw JSON string — a list of question objects with a `group` field
+            indicating which group the question belongs to. Backend fills in
+            grade, subject, chapter, and contextId.
+        """
+        logger.info(
+            f"[EXAM_SERVICE] Generating questions by topic: {request.topic_name}, "
+            f"grade: {request.grade}, groups: {len(request.groups)}"
+        )
+
+        subject_map = {
+            "T": "Toán (Mathematics)",
+            "TV": "Tiếng Việt (Vietnamese)",
+            "TA": "Tiếng Anh (English)",
+        }
+        subject_name = subject_map.get(request.subject, request.subject)
+
+        # Build groups section for user prompt
+        groups_lines = []
+        total_questions = 0
+
+        for idx, group in enumerate(request.groups):
+            group_header = f"### Group {idx} — {group.group_type}"
+            if group.group_type == "CONTEXT" and group.context_content:
+                context_type_label = (
+                    "Reading Passage"
+                    if group.context_type == "TEXT"
+                    else "Image"
+                )
+                group_header += f" ({context_type_label})"
+
+            requirements_lines = []
+            for difficulty, type_map in group.requirements.items():
+                for q_type, req in type_map.items():
+                    if req.count > 0:
+                        requirements_lines.append(
+                            f"  - {difficulty} / {q_type}: "
+                            f"{req.count} questions x {req.points} pts each"
+                        )
+                        total_questions += req.count
+
+            group_section = group_header + "\n" + "\n".join(requirements_lines)
+
+            if group.group_type == "CONTEXT" and group.context_content:
+                group_section += (
+                    f"\n\n**Reading Passage**:\n{group.context_content}"
+                )
+
+            groups_lines.append(group_section)
+
+        groups_section = "\n\n".join(groups_lines)
+
+        prompt_vars = {
+            "topic_name": request.topic_name,
+            "grade": request.grade,
+            "subject": subject_name,
+            "total_questions": total_questions,
+            "groups_section": groups_section,
+            "additional_prompt": "",
+        }
+
+        sys_msg = self._system("question.by_topic.system", prompt_vars)
+        usr_msg = self._system("question.by_topic.user", prompt_vars)
+
+        # Build messages — if any CONTEXT group has an image, add it
+        image_groups = [
+            g
+            for g in request.groups
+            if g.group_type == "CONTEXT"
+            and g.context_type == "IMAGE"
+            and g.context_content
+        ]
+
+        if image_groups:
+            content_parts: list = [{"type": "text", "text": usr_msg}]
+            for g in image_groups:
+                image_data = g.context_content
+                if "," in image_data:
+                    image_data = image_data.split(",")[1]
+                content_parts.append(
+                    {
+                        "type": "image_url",
+                        "image_url": {
+                            "url": f"data:image/jpeg;base64,{image_data}"
+                        },
+                    }
+                )
+            messages = [
+                SystemMessage(content=sys_msg),
+                HumanMessage(content=content_parts),
+            ]
+        else:
+            messages = [
+                SystemMessage(content=sys_msg),
+                HumanMessage(content=usr_msg),
+            ]
+
+        logger.info(
+            f"[EXAM_SERVICE] Calling LLM (JSON mode) with provider: "
+            f"{request.provider}, model: {request.model}, "
+            f"total_questions: {total_questions}"
+        )
+
+        result, token_usage = self.llm_executor.batch(
+            provider=request.provider or "google",
+            model=request.model or "gemini-2.5-flash",
+            messages=messages,
+            json_mode=True,
+        )
+
+        logger.info(
+            f"[EXAM_SERVICE] LLM call completed. "
+            f"Tokens: input={token_usage.input_tokens}, "
+            f"output={token_usage.output_tokens}"
+        )
+
+        # JSON mode guarantees valid JSON — no markdown extraction needed
+        return result

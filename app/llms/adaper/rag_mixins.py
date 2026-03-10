@@ -76,7 +76,11 @@ class RAGAdapterMixin:
             }
 
             # Note: structured context requires custom state in LangGraph
-            if return_source_documents and "context" in response:
+            if (
+                response is not None
+                and return_source_documents
+                and "context" in response
+            ):
                 result["source_documents"] = self._format_source_documents(
                     response["context"]
                 )

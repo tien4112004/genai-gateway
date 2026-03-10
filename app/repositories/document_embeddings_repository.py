@@ -129,7 +129,7 @@ class DocumentEmbeddingsRepository:
     def mmr_search(
         self,
         query: str,
-        k: int = 4,
+        k: int = 10,
         filter: Optional[Dict[str, Any]] = None,
     ) -> List[Document]:
         """

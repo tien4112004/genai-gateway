@@ -676,3 +676,59 @@ class GenerateQuestionsFromMatrixResponse(BaseModel):
 
     class Config:
         populate_by_name = True
+
+
+# ============================================================================
+# Generate Questions by Topic (single topic from matrix row)
+# ============================================================================
+
+
+class GroupRequirement(BaseModel):
+    """A group of questions within a topic — either context-based or normal."""
+
+    group_type: Literal["CONTEXT", "NORMAL"] = Field(
+        ...,
+        description="CONTEXT if backed by a reading passage, NORMAL otherwise",
+    )
+    context_content: Optional[str] = Field(
+        None, description="Reading passage content (only for CONTEXT group)"
+    )
+    context_type: Optional[Literal["TEXT", "IMAGE"]] = Field(
+        None, description="Type of context (only for CONTEXT group)"
+    )
+    requirements: Dict[
+        Literal["KNOWLEDGE", "COMPREHENSION", "APPLICATION"],
+        Dict[
+            Literal[
+                "MULTIPLE_CHOICE", "FILL_IN_BLANK", "MATCHING", "OPEN_ENDED"
+            ],
+            QuestionRequirement,
+        ],
+    ] = Field(
+        ...,
+        alias="questionsPerDifficulty",
+        description="Map of difficulty -> question_type -> requirement",
+    )
+
+    class Config:
+        populate_by_name = True
+
+
+class GenerateQuestionsByTopicRequest(BaseModel):
+    """Request to generate questions for a single topic from the matrix."""
+
+    grade: Literal["K", "1", "2", "3", "4", "5"] = Field(
+        ..., description="Grade level"
+    )
+    subject: str = Field(..., description="Subject code (T, TV, TA)")
+    topic_name: str = Field(..., description="Name of the topic")
+    groups: List[GroupRequirement] = Field(
+        ...,
+        description="Question groups (1 group if no context split, 2 if split)",
+    )
+    provider: Optional[str] = Field(
+        default="google", description="LLM provider"
+    )
+    model: Optional[str] = Field(
+        default="gemini-2.5-flash", description="LLM model to use"
+    )
