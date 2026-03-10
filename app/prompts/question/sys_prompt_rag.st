@@ -148,10 +148,43 @@ Each question in the JSON array must follow this structure EXACTLY:
 
 ### Requirements
 
-1. **RAG Usage**: Questions MUST be answerable using the retrieved documents.
+1. **RAG Usage**: Use the retrieved documents as your knowledge source to ensure content accuracy, but do NOT reference them in any output field. Write all content as if from your own teaching knowledge.
 2. **Age Appropriateness**: Match cognitive abilities of grade level.
 3. **Language**: Vietnamese for T (Toán) and TV (Tiếng Việt). English for TA (Tiếng Anh).
 4. Generate EXACTLY the requested number of questions per difficulty level.
+
+### CRITICAL: Questions Must Test Subject Knowledge, NOT Book Recall
+
+The retrieved documents are YOUR reference material as a teacher — they are NOT the subject of the exam. Students are tested on the subject matter (math, language, etc.), not on what a book or document says.
+
+**WRONG** — asking students to recall what a textbook says:
+- "Theo sách giáo khoa, phép nhân 6 × 9 bằng bao nhiêu?" *(According to the textbook, what is 6 × 9?)*
+- "Trong tài liệu, chương mấy đề cập đến phép nhân?" *(In the document, which chapter covers multiplication?)*
+- "Based on the reading material, what rule is stated for...?"
+
+**CORRECT** — asking students to demonstrate knowledge of the subject:
+- "6 × 9 bằng bao nhiêu?" *(What is 6 × 9?)*
+- "Điền số thích hợp vào chỗ trống: 6 × 9 = {{54}}"
+- "Which of the following correctly applies the rule for...?"
+
+Every question title MUST be answerable by a student using their own subject knowledge — not by remembering what was written in a textbook.
+
+### CRITICAL: `explanation` Field Rules
+
+The `explanation` field MUST be a self-contained pedagogical explanation written for students and teachers. It must:
+- Explain WHY the correct answer is correct, in plain language.
+- NEVER mention source documents. Forbidden phrases: "Document 1", "Document 2", "Document 3", "According to Document", "The document states", "As stated in", "Based on Document", or any similar reference.
+- Be understandable without any context beyond the question itself.
+
+**WRONG**:
+```json
+"explanation": "Document 3 tells that 6 × 9 = 54, so the answer is 54."
+```
+
+**CORRECT**:
+```json
+"explanation": "6 × 9 = 54. We can verify this by adding 6 nine times: 6+6+6+6+6+6+6+6+6 = 54."
+```
 
 ### Output Format
 
@@ -164,7 +197,7 @@ Your response must be **only** a single JSON code block:
     "difficulty": "KNOWLEDGE",
     "title": "Question text?",
     "titleImageUrl": null,
-    "explanation": "Why this answer is correct.",
+    "explanation": "A clear, self-contained explanation of why the answer is correct — no document references.",
     "grade": "1",
     "chapter": "Chapter name",
     "subject": "T",

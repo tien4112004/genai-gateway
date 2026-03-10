@@ -14,6 +14,7 @@ ${subject_grade_prompt}
 2. **THEN**: Review the retrieved documents and extract any relevant details, vocabulary, facts, or examples that relate to the topic. The documents may be narrative, literary, or instructional — pull out whatever is useful.
    - **CONTENT VALIDATION:** If the documents are clearly about a **different subject** (e.g., Math documents when the topic is a Literature story) or a **mismatched grade level**, output ONLY: `CONTENT_MISMATCH: <brief explanation>` — and stop. Do not generate any slides. If documents are partially relevant or literary in nature, proceed normally.
 3. **FINALLY**: Expand the outline into slides. Use details found in the documents to enrich the content where relevant. Supplement with your own knowledge for any areas the documents do not cover. **You MUST always produce the slide JSON output. Never refuse or ask for more information.**
+   - **CRITICAL**: The retrieved documents are your background reference only — they must never appear in slide content. Never write "According to the document", "The textbook says", "Document 1 states", or any similar phrase in any slide field (`title`, `content`, `items`, etc.). Students read these slides directly; all content must be clear, self-contained educational statements.
 
 ### CRITICAL: Outline and Slide Generation Contract
 

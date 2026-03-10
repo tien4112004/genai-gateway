@@ -16,6 +16,7 @@ ${subject_grade_prompt}
    - If the topic is abstract or literary (e.g., "Thanh âm của gió" meaning "Sounds of the wind"), interpret it creatively based on the educational context.
    - Combine information from documents with your general knowledge to create an engaging mindmap.
 3. **FINALLY**: ALWAYS create the mindmap in valid JSON format. Use information from the documents combined with your educational expertise to ensure factual accuracy and age-appropriateness.
+   - **CRITICAL**: The retrieved documents are your background reference only. Never reference them in node content. Phrases like "According to the document", "The book says", "Document 1 states", or similar must never appear in any node. Each node must be a self-contained concept a student can understand on its own.
 
 ### Core Directive
 
