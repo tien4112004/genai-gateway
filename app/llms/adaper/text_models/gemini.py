@@ -21,7 +21,7 @@ class GeminiAdapter(RAGAdapterMixin):
             model=model_name,
             **params,
             convert_system_message_to_human=True,
-            model_kwargs=model_kwargs if model_kwargs else None,
+            model_kwargs=model_kwargs,
         )
 
     def run(

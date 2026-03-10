@@ -545,7 +545,9 @@ def generate_questions(
                     detail=f"Prompt template not found: {str(e)}",
                 )
             except Exception as e:
-                logger.error(f"[QUESTIONS/GENERATE] Error: {str(e)}")
+                logger.error(
+                    f"[QUESTIONS/GENERATE] Error: {str(e)}", exc_info=True
+                )
                 raise HTTPException(
                     status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                     detail=f"Failed to generate questions: {str(e)}",
@@ -576,7 +578,9 @@ def generate_questions(
                     detail=f"Prompt template not found: {str(e)}",
                 )
             except Exception as e:
-                logger.error(f"[QUESTIONS/GENERATE] Error: {str(e)}")
+                logger.error(
+                    f"[QUESTIONS/GENERATE] Error: {str(e)}", exc_info=True
+                )
                 raise HTTPException(
                     status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                     detail=f"Failed to generate questions: {str(e)}",
