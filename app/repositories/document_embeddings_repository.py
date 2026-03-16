@@ -130,6 +130,8 @@ class DocumentEmbeddingsRepository:
         self,
         query: str,
         k: int = 10,
+        fetch_k: int = 30,
+        lambda_mult: float = 0.7,
         filter: Optional[Dict[str, Any]] = None,
     ) -> List[Document]:
         """
@@ -138,6 +140,10 @@ class DocumentEmbeddingsRepository:
         Args:
             query: Query text
             k: Number of documents to return
+            fetch_k: Number of candidate documents to fetch before MMR reranking.
+                     Higher values give MMR more candidates to choose from but are slower.
+            lambda_mult: Balance between relevance (1.0) and diversity (0.0).
+                         Default 0.7 favors relevance to reduce unrelated results.
             filter: Optional metadata filter
 
         Returns:
@@ -145,7 +151,11 @@ class DocumentEmbeddingsRepository:
         """
         vector_store = self._get_vector_store()
         return vector_store.max_marginal_relevance_search(
-            query=query, k=k, filter=filter
+            query=query,
+            k=k,
+            fetch_k=fetch_k,
+            lambda_mult=lambda_mult,
+            filter=filter,
         )
 
     def similarity_search_with_score(

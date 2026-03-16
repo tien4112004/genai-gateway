@@ -49,9 +49,16 @@ class RAGAdapterMixin:
             if filters:
                 set_search_filters(filters)
 
+            # Use a low temperature for the tool-calling step to make
+            # search query formulation deterministic and consistent.
+            try:
+                agent_client = self.client.bind(temperature=0.1)
+            except Exception:
+                agent_client = self.client
+
             # Define agent
             agent = create_tool_calling_executor(
-                self.client,
+                agent_client,
                 tools,
                 prompt=system_prompt,
             )
@@ -123,8 +130,13 @@ class RAGAdapterMixin:
             if filters:
                 set_search_filters(filters)
 
+            try:
+                agent_client = self.client.bind(temperature=0.1)
+            except Exception:
+                agent_client = self.client
+
             agent = create_tool_calling_executor(
-                self.client,
+                agent_client,
                 tools,
                 prompt=system_prompt,
             )

@@ -27,7 +27,7 @@ def clear_search_filters():
 
 
 @tool
-def search_mmr(query: str, k: int = 15) -> str:
+def search_mmr(query: str, k: int = 8) -> str:
     """
     Search for relevant educational documents and materials in the knowledge base.
 
@@ -38,8 +38,9 @@ def search_mmr(query: str, k: int = 15) -> str:
     It retrieves multiple documents to ensure comprehensive coverage.
 
     Args:
-        query: The topic or question to search for.
-        k: Number of documents to retrieve (default: 10).
+        query: The topic or question to search for. Use concise topic keywords,
+               not full sentences or instructions.
+        k: Number of documents to retrieve (default: 8).
 
     Returns:
         A formatted string containing the content of relevant documents.
@@ -66,16 +67,29 @@ def search_mmr(query: str, k: int = 15) -> str:
                 pass
 
     # Enforce reasonable k value
-    k = max(min(k, 20), 5)
+    k = max(min(k, 20), 10)
+
+    # Use a large candidate pool so chapter-specific docs ranked at position 30–50
+    # are still reachable before MMR reranking selects the final k documents.
+    fetch_k = max(k * 5, 50)
 
     # Perform similarity search with filters
     docs = document_embeddings_repository.mmr_search(
-        query=query, k=k, filter=filter_dict if filter_dict else None
+        query=query,
+        k=k,
+        fetch_k=fetch_k,
+        filter=filter_dict if filter_dict else None,
     )
 
     if not docs and filter_dict:
+        import logging
+
+        logging.getLogger(__name__).warning(
+            "search_mmr: no results with filters %s — falling back to unfiltered search",
+            filter_dict,
+        )
         docs = document_embeddings_repository.mmr_search(
-            query=query, k=k, filter=None
+            query=query, k=k, fetch_k=fetch_k, filter=None
         )
 
     if not docs:
