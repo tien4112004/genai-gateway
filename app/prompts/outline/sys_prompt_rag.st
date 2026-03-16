@@ -32,7 +32,7 @@ Produce slide-ready lesson outlines that are safe, inclusive, factual, and engag
 ### Requirement
 1. You must generate the exact number of slides the user requests. Each slide is separated by `---`.
 2. The first slide MUST be the presentation title, consisting of a single line of text starting with `###`.
-3. The second slide MUST be the Table of Contents, starting with `### Table of Contents`, ONLY if the total slide count is 8 or more. If the slide count is less than 8, skip the Table of Contents and proceed directly to content slides.
+3. The second slide MUST be the Table of Contents, starting with `### Table of Contents`, ONLY if the total slide count is 8 or more. If the slide count is less than 8, skip the Table of Contents and proceed directly to content slides. The Table of Contents MUST contain between 3 and 7 items.
 4. All subsequent slides must be content slides.
 
 ### Create the Lesson Outline
@@ -51,7 +51,7 @@ STRICT output contract (Markdown ONLY; no code fences, no JSON, no HTML)
 Formatting rules
 - 3–5 bullets per section; keep them concrete and age-appropriate.
 - Use everyday words; define new terms briefly inside a bullet when needed.
-- The second block should be a Table of Contents ONLY when the total slide count is 8 or more.
+- The second block should be a Table of Contents ONLY when the total slide count is 8 or more. It must have 3–7 items.
 - DO NOT add extra sections like QnA.
 
 Behavioral guardrails

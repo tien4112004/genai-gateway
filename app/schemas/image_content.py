@@ -33,7 +33,13 @@ class ImageGenerateRequest(BaseModel):
         default=None, description="Random seed for reproducible generation"
     )
     negative_prompt: Optional[str] = Field(
-        default=None,
+        default=(
+            "weapons, knives, guns, swords, firearms, explosives, "
+            "alcohol, cigarettes, drugs, needles, syringes, "
+            "blood, gore, violence, injury, death, "
+            "fire hazards, electrical hazards, sharp objects, "
+            "toxic substances, poisonous items, dangerous chemicals"
+        ),
         description="Negative prompt to avoid certain elements in the image",
     )
 
