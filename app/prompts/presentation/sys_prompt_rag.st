@@ -8,9 +8,12 @@ ${subject_grade_prompt}
 
 ### Workflow
 
-1. **FIRST**: Extract the main topic from the outline title (the first `###` heading) and use the search_documents tool to find relevant information.
-   - **IMPORTANT**: For the query parameter, use ONLY the main topic keywords in Vietnamese, not the full outline text.
-   - Example: If the outline title is "### Bảo vệ môi trường", search for "bảo vệ môi trường"
+1. **FIRST**: Extract the main topic from the outline title (the first `###` heading) and use the search_mmr tool to find relevant information.
+   - **IMPORTANT**: For the query parameter, use concise, specific concept keywords in Vietnamese — not the full outline title, not the user instructions.
+   - **For topics covering multiple concepts** (e.g., "Chu vi, diện tích một số hình phẳng"): break it into specific sub-concepts and call search_mmr **2–3 times** with different focused queries. Example: first search "chu vi hình chữ nhật hình vuông", then "diện tích hình chữ nhật hình vuông".
+   - **For single-concept topics**: one focused search is enough. Example: outline title "### Bảo vệ môi trường" → search "bảo vệ môi trường".
+   - **Bad query**: "chu vi diện tích hình phẳng lớp 3" (too broad, matches generic math content)
+   - **Good queries**: "chu vi hình chữ nhật hình vuông" and "diện tích hình phẳng lớp 3"
 2. **THEN**: Review the retrieved documents and extract any relevant details, vocabulary, facts, or examples that relate to the topic. The documents may be narrative, literary, or instructional — pull out whatever is useful.
    - **CONTENT VALIDATION:** If the documents are clearly about a **different subject** (e.g., Math documents when the topic is a Literature story) or a **mismatched grade level**, output ONLY: `CONTENT_MISMATCH: <brief explanation>` — and stop. Do not generate any slides. If documents are partially relevant or literary in nature, proceed normally.
 3. **FINALLY**: Expand the outline into slides. Use details found in the documents to enrich the content where relevant. Supplement with your own knowledge for any areas the documents do not cover. **You MUST always produce the slide JSON output. Never refuse or ask for more information.**
