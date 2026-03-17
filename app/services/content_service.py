@@ -45,7 +45,13 @@ class ContentService:
             logger.info(f"[FILE-GEN] File URL: {url}")
 
         file_contents = extract_from_urls(file_urls)
-        content_parts = [{"type": "text", "text": usr_msg}]
+
+        file_preamble = (
+            "The user has provided one or more files as the primary content source. "
+            "Base your response on the content of the attached file(s). "
+            "If no topic is explicitly specified, derive the topic directly from the file content.\n\n"
+        )
+        content_parts = [{"type": "text", "text": file_preamble + usr_msg}]
 
         for i, fc in enumerate(file_contents):
             if fc.file_type == "image":
