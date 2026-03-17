@@ -23,7 +23,14 @@ class GenerateSlidesRequest(BaseModel):
         None, description="Image generation provider"
     )
     negative_prompt: Optional[str] = Field(
-        None, description="Negative prompt for images"
+        default=(
+            "weapons, knives, guns, swords, firearms, explosives, "
+            "alcohol, cigarettes, drugs, needles, syringes, "
+            "blood, gore, violence, injury, death, "
+            "fire hazards, electrical hazards, sharp objects, "
+            "toxic substances, poisonous items, dangerous chemicals"
+        ),
+        description="Negative prompt for images",
     )
     context: Optional[Dict[str, Any]] = Field(
         None, description="Dynamic context object from the presentation"
