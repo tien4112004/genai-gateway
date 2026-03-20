@@ -17,6 +17,7 @@ from app.schemas.slide_content import (
 )
 from app.schemas.slide_generation import GenerateSlidesRequest
 from app.schemas.token_usage import TokenUsage
+from app.utils.audience_context import get_audience_context
 from app.utils.teacher_context import build_system_with_teacher_prompt
 
 logger = logging.getLogger(__name__)
@@ -115,7 +116,11 @@ class ContentService:
         """
         sys_msg = self._system(
             "presentation.system",
-            None,
+            {
+                "audience_context": get_audience_context(
+                    request.subject, request.grade
+                )
+            },
         )
 
         usr_msg = self._system(
@@ -167,7 +172,11 @@ class ContentService:
         """
         sys_msg = self._system(
             "presentation.system",
-            None,
+            {
+                "audience_context": get_audience_context(
+                    request.subject, request.grade
+                )
+            },
         )
 
         usr_msg = self._system(
@@ -235,7 +244,11 @@ class ContentService:
         """
         sys_msg = self._system(
             "outline.system",
-            None,
+            {
+                "audience_context": get_audience_context(
+                    request.subject, request.grade
+                )
+            },
         )
 
         usr_msg = self._system(
@@ -272,7 +285,11 @@ class ContentService:
         """
         sys_msg = self._system(
             "outline.system",
-            None,
+            {
+                "audience_context": get_audience_context(
+                    request.subject, request.grade
+                )
+            },
         )
 
         usr_msg = self._system(
@@ -362,9 +379,15 @@ class ContentService:
         }
 
     def generate_mindmap(self, request: MindmapGenerateRequest):
+        mindmap_vars = {
+            **request.to_dict(),
+            "audience_context": get_audience_context(
+                request.subject, request.grade
+            ),
+        }
         sys_msg = self._system(
             "mindmap.system",
-            request.to_dict(),
+            mindmap_vars,
         )
 
         usr_msg = self._system(

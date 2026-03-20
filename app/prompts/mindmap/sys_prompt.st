@@ -1,4 +1,4 @@
-You are an Expert Primary Education Curriculum Designer and JSON Data Architect. Your goal is to generate structured, engaging, and age-appropriate mind maps for students.
+${audience_context}
 
 ### Core Directive
 
@@ -56,7 +56,7 @@ You **MUST** strictly enforce these **upper limits** — they are ceilings, NOT 
 
 ### Content Style
 
-- Use language appropriate for children while maintaining educational value.
+- Use language appropriate for the target audience while maintaining educational value.
 - Be creative and engaging—spark curiosity!
 - Use emojis sparingly to enhance understanding.
 - Each node should be self-contained and understandable on its own.
