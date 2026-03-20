@@ -6,7 +6,6 @@ from app.core.config import settings
 from app.repositories.document_embeddings_repository import (
     DocumentEmbeddingsRepository,
 )
-from app.services.content_rag_service import ContentRagService
 from app.services.content_service import ContentService
 from app.services.exam_rag_service import ExamRagService
 from app.services.exam_service import ExamService
@@ -36,11 +35,6 @@ def get_doc_repository(request: Request):
     return request.app.state.document_embeddings_repository
 
 
-def get_content_rag_service(request: Request) -> ContentRagService:
-    """Get the content rag service."""
-    return request.app.state.content_rag_service
-
-
 def get_slide_rag_service(request: Request) -> SlideRagService:
     """Get the slide rag service."""
     return request.app.state.slide_rag_service
@@ -65,9 +59,7 @@ ExamServiceDep = Annotated[ExamService, Depends(get_exam_service)]
 TeacherSystemPromptServiceDep = Annotated[
     TeacherSystemPromptService, Depends(get_teacher_prompt_service)
 ]
-ContentRagServiceDep = Annotated[
-    ContentRagService, Depends(get_content_rag_service)
-]
+
 ContentServiceDep = Annotated[ContentService, Depends(get_content_service)]
 DocumentEmbeddingsRepositoryDep = Annotated[
     DocumentEmbeddingsRepository, Depends(get_doc_repository)
