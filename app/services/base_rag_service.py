@@ -4,6 +4,7 @@ from app.llms.executor import LLMExecutor
 from app.prompts.loader import PromptStore
 from app.prompts.subject_prompt_router import get_subject_grade_prompt_key
 from app.schemas.token_usage import TokenUsage
+from app.utils.audience_context import get_audience_context
 from app.utils.teacher_context import build_system_with_teacher_prompt
 
 
@@ -76,7 +77,8 @@ class BaseRagService:
                     f"[WARNING] Subject-grade prompt key '{subject_grade_key}' not found in registry"
                 )
 
-        # Inject the subject-grade prompt into the template variables
+        # Inject audience context and subject-grade prompt into the template variables
+        vars["audience_context"] = get_audience_context(subject_code, grade)
         vars["subject_grade_prompt"] = subject_grade_prompt
 
         # Render the base template with the injected subject-grade prompt
