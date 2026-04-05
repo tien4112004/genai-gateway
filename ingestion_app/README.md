@@ -1,278 +1,234 @@
-# Document Ingestion Module
+# Ingestion App
 
-This module handles the ingestion of documents into a PostgreSQL vector database with pgvector for RAG (Retrieval Augmented Generation) operations.
+Offline pipeline that loads Vietnamese educational textbooks (SGK/SGV PDFs), splits them into hierarchical chunks, embeds them with Vertex AI, and stores the vectors in PostgreSQL + pgvector for use by the main AI Worker's RAG endpoints.
 
-## Features
+Run this pipeline **once per document set** (or when new books are added). The main app queries the resulting vector store at request time — it does not ingest on its own.
 
-- **Document Loading**: Support for PDF, TXT, DOCX, and Markdown files
-- **Document Cleaning**: Preprocessing with configurable options
-- **Text Chunking**: Intelligent splitting with configurable size and overlap
-- **Embeddings**: Google Vertex AI embeddings (text-embedding-004)
-- **Vector Storage**: PostgreSQL with pgvector extension for efficient similarity search
+---
 
-## Components
+## How It Fits in the System
 
-### 1. DocumentLoader (`documents_loader.py`)
-
-Loads documents from various file formats with advanced PDF parsing capabilities.
-
-**Supported formats:**
-
-- PDF (`.pdf`) - Uses **LlamaParse** for advanced parsing with OCR and table recognition
-- Text (`.txt`)
-- Markdown (`.md`)
-- Word Documents (`.docx`)
-
-**PDF Features (LlamaParse):**
-- Advanced OCR for scanned documents
-- Table recognition and markdown conversion
-- Multi-language support (Vietnamese by default)
-- Layout analysis and structure preservation
-- Configurable parsing instructions
-- Automatic fallback to basic loader if LlamaParse unavailable
-
-### 2. DocumentCleaner (`documents_cleaning.py`)
-
-Preprocesses documents to improve quality:
-
-- Remove extra whitespace
-- Remove URLs and emails (optional)
-- Normalize text (optional)
-- Remove duplicates
-
-### 3. DocumentChunker (`documents_chunking.py`)
-
-Splits documents into chunks for optimal embedding:
-
-- Configurable chunk size (default: 1000 characters)
-- Configurable overlap (default: 200 characters)
-- Hierarchical splitting (paragraphs → sentences → words → characters)
-
-### 4. EmbeddingService (`documents_embedding.py`)
-
-Generates embeddings using Google Vertex AI:
-
-- Model: text-embedding-004 (768 dimensions)
-- Batch and single query embedding
-- Async support
-
-### 5. VectorStoreManager (`vector_store.py`)
-
-Manages PostgreSQL with pgvector extension:
-
-- Document addition with batching
-- Similarity search with scores
-- JSONB metadata filtering
-- Retriever creation for RAG operations
-- Collection management (reset, delete, stats)
-
-## Installation
-
-### 1. Set up PostgreSQL with pgvector
-
-See [PGVECTOR_SETUP.md](PGVECTOR_SETUP.md) for detailed setup instructions.
-
-**Quick start with Docker:**
-
-```bash
-docker run -d \
-  --name pgvector-db \
-  -e POSTGRES_PASSWORD=yourpassword \
-  -e POSTGRES_DB=vectordb \
-  -p 5432:5432 \
-  pgvector/pgvector:pg16
+```
+[Textbook PDFs]
+      │
+      ▼  ingestion_app/main.py (offline, run once)
+DocumentLoader  ──→  LlamaParse (Vision model, markdown output)
+      │
+      ▼
+DocumentChunker ──→  Hierarchical parent/child chunks
+      │
+      ▼
+EmbeddingService ──→  Vertex AI text-embedding-004  (768 dims)
+      │
+      ▼
+VectorStoreManager ──→  PostgreSQL + pgvector
+                              │
+                              │  (at request time)
+                              ▼
+                    ai-worker / RAG endpoints
+                    DocumentEmbeddingsRepository
+                    Vertex AI text-embedding-004  ← same model
 ```
 
-### 2. Install Python dependencies
+> **Embedding model must match on both sides.** Vectors written by ingestion and query vectors computed by the main app must come from the **same model**. Both sides read `EMBEDDING_MODEL` from the shared `.env`. If you ever switch models, re-run ingestion from scratch (`--reset`).
 
-```bash
-# From project root
-cd /home/ltt204/graduation-projec/ai-worker
+---
 
-# Compile and install dependencies
-make compile-deps
-make sync-deps
+## Pipeline Steps
+
+### 1. Load — `documents_loader.py`
+
+Uses **LlamaParse** (Vision model) rather than plain PDF parsers, because SGK textbooks have complex layouts: mixed columns, embedded images, math formulas, and tables.
+
+LlamaParse config applied:
+- `result_type="markdown"` — preserves heading and list structure
+- `auto_mode=True` — activates image-aware parsing when >30% of a page is image
+- `table_structure_parsing="advanced"` — correctly extracts tabular data
+- `parsing_instruction` — Vietnamese-specific hint so the model recognises exercise blocks and formulas
+
+Falls back to basic PyMuPDF loader if LlamaParse is unavailable or fails.
+
+Supported formats: `.pdf`, `.txt`, `.md`, `.docx`
+
+### 2. Chunk — `documents_chunking.py`
+
+Uses **hierarchical (parent-child) chunking** instead of fixed-size splitting:
+
+| Chunk type | Default size | Purpose |
+|------------|-------------|---------|
+| Parent | ~2000 chars | Stores full context; returned to the LLM |
+| Child | ~500 chars | Embedded and indexed for similarity search |
+
+Each child chunk carries its parent's full text in metadata (`parent_text`). At retrieval time the main app searches on child embeddings but the LLM receives the parent text, giving it the wider context needed for accurate generation.
+
+Splitter separators (in priority order): `\n\n` → `\n` → `. ` → ` ` → `""`
+
+### 3. Embed — `documents_embedding.py`
+
+- Model: **Vertex AI `text-embedding-004`**
+- Dimension: **768**
+- Auth: service account JSON via `GOOGLE_APPLICATION_CREDENTIALS`
+
+### 4. Store — `vector_store.py`
+
+- Database: PostgreSQL + pgvector extension
+- LangChain `PGVector` integration
+- Each chunk is stored with JSONB metadata for filtered search:
+
+```json
+{
+  "grade": 3,
+  "subject_code": "T",
+  "subject_name": "Toán",
+  "chunk_type": "child",
+  "parent_text": "...",
+  "parent_id": 12
+}
 ```
 
-### 3. Configure environment variables
+### 5. Metadata — `metadata_parser.py`
 
-Edit your `.env` file:
+Educational metadata (`grade`, `subject_code`) is automatically extracted from the **filename** using the naming convention below. This metadata is attached to every stored chunk and used as a filter at retrieval time.
 
-```bash
-# Vertex AI Configuration
-VERTEX_PROJECT_ID=your-project-id
-VERTEX_LOCATION=us-central1
-GOOGLE_APPLICATION_CREDENTIALS=./service-account.json
+---
 
-# PostgreSQL Configuration
-PG_HOST=localhost
-PG_PORT=5432
-PG_DATABASE=vectordb
-PG_USER=postgres
-PG_PASSWORD=yourpassword
+## Filename Convention
 
-# Embedding Configuration
-EMBEDDING_MODEL=text-embedding-004
+The parser recognises the standard Vietnamese SGK/SGV naming scheme:
 
-# Chunking Configuration
-CHUNK_SIZE=1000
-CHUNK_OVERLAP=200
-
-# Collection Configuration
-COLLECTION_NAME=documents
-
-# LlamaParse Configuration (for advanced PDF parsing)
-LLAMA_CLOUD_API_KEY=your-llama-cloud-api-key
-PDF_LANGUAGE=vi
-USE_PREMIUM_PDF_MODE=true
+```
+SG[VK]_KNTT_<SUBJECT><GRADE>[_T<VERSION>]
 ```
 
-**LlamaParse Configuration:**
-- `LLAMA_CLOUD_API_KEY`: Get your API key from [LlamaIndex Cloud](https://cloud.llamaindex.ai/)
-- `PDF_LANGUAGE`: Language code for OCR (e.g., "vi" for Vietnamese, "en" for English)
-- `USE_PREMIUM_PDF_MODE`: Enable premium mode for better accuracy (true/false)
+| Filename | Grade | Subject code | Subject name |
+|----------|-------|--------------|--------------|
+| `SGV_KNTT_T1.pdf` | 1 | `T` | Toán (Math) |
+| `SGK_KNTT_TA3.pdf` | 3 | `TA` | Tiếng Anh (English) |
+| `SGV_KNTT_TV5_T2.pdf` | 5 | `TV` | Tiếng Việt (Literature) |
 
-**Note:** If LlamaParse is not configured or fails, the loader automatically falls back to the basic PyMuPDF loader.
+Files that do not match the pattern are still ingested, but without grade/subject metadata — they will not be returned by filtered RAG queries.
 
-## Usage
+---
 
-### Basic Usage
+## Prerequisites
+
+- PostgreSQL 15+ with the `pgvector` extension installed
+- A Vertex AI service account with `Vertex AI User` role
+- A LlamaIndex Cloud API key (for LlamaParse PDF parsing)
+- The shared `.env` file at the project root
+
+**Install pgvector (Ubuntu/Debian):**
 
 ```bash
-# Ingest documents from default directory (./data/documents)
+sudo apt install postgresql-15-pgvector   # adjust version
+# then in psql:
+CREATE EXTENSION vector;
+```
+
+For a full setup guide see [`PGVECTOR_SETUP.md`](./PGVECTOR_SETUP.md).
+
+---
+
+## Environment Variables
+
+The ingestion app reads from the same `.env` as the main app. Variables specific to ingestion:
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `EMBEDDING_MODEL` | `text-embedding-004` | **Must match the main app** |
+| `COLLECTION_NAME` | `documents` | pgvector collection name |
+| `PARENT_CHUNK_SIZE` | `2000` | Parent chunk size in characters |
+| `CHILD_CHUNK_SIZE` | `500` | Child chunk size in characters |
+| `CHUNK_OVERLAP` | `100` | Overlap between consecutive chunks |
+| `PDF_LANGUAGE` | `vi` | OCR language hint for LlamaParse |
+| `USE_PREMIUM_PDF_MODE` | `true` | Enable LlamaParse premium mode |
+| `LLAMA_CLOUD_API_KEY` | — | LlamaIndex Cloud API key (required for PDF) |
+| `PG_CONNECTION_STRING` | — | Full SQLAlchemy connection URL (preferred) |
+| `PG_HOST` | `localhost` | Used if `PG_CONNECTION_STRING` is not set |
+| `PG_PORT` | `5432` | — |
+| `PG_DATABASE` | `vectordb` | — |
+| `PG_USER` | `postgres` | — |
+| `PG_PASSWORD` | — | Required if not using `PG_CONNECTION_STRING` |
+
+---
+
+## Running the Pipeline
+
+From the **project root**:
+
+```bash
+# Activate your virtual environment first
+source venv/bin/activate
+
+# Ingest all documents in the default directory (./data/documents)
 python ingestion_app/main.py
 
-# Specify custom directory
-python ingestion_app/main.py --docs-dir /path/to/your/documents
+# Specify a different directory
+python ingestion_app/main.py --docs-dir /path/to/textbooks
 
-# Reset collection before ingesting
+# Wipe the collection and re-ingest from scratch
 python ingestion_app/main.py --reset
 
-# Use custom collection name
-python ingestion_app/main.py --collection-name my_docs
+# Override collection name
+python ingestion_app/main.py --collection-name my_collection
+
+# All options combined
+python ingestion_app/main.py \
+  --docs-dir ./data/documents \
+  --collection-name document_embeddings \
+  --reset \
+  --recursive
 ```
 
-### Programmatic Usage
+The script prints a live progress summary per document and a final count of chunks stored.
 
-```python
-from ingestion_app.documents_loader import DocumentLoader
-from ingestion_app.documents_chunking import DocumentChunker
-from ingestion_app.documents_embedding import EmbeddingService
-from ingestion_app.vector_store import VectorStoreManager
-
-# 1. Load documents with LlamaParse for PDFs
-loader = DocumentLoader(
-    pdf_language="vi",  # Vietnamese for PDFs
-    use_premium_mode=True,  # Use LlamaParse premium mode
-    parsing_instruction="Custom parsing instructions..."  # Optional
-)
-documents = loader.load_from_directory("./data/documents")
-
-# 2. Chunk documents
-chunker = DocumentChunker(chunk_size=1000, chunk_overlap=200)
-chunks = chunker.split_documents(documents)
-
-# 3. Initialize embedding service
-embedding_service = EmbeddingService(
-    model_name="text-embedding-004",
-    project_id="your-project-id",
-    location="us-central1",
-    service_account_file="./service-account.json"
-)
-
-# 4. Create vector store
-vector_store = VectorStoreManager(
-    embeddings=embedding_service.get_embeddings(),
-    collection_name="documents",
-    host="localhost",
-    port=5432,
-    database="vectordb",
-    user="postgres",
-    password="yourpassword"
-)
-
-# 5. Add documents
-doc_ids = vector_store.add_documents(chunks)
-
-# 6. Search for similar documents
-results = vector_store.similarity_search("your query", k=4)
-```
+---
 
 ## Directory Structure
 
 ```
 ingestion_app/
-├── __init__.py              # Package initialization
-├── main.py                  # Main ingestion script
-├── documents_loader.py      # Document loading
-├── documents_cleaning.py    # Document preprocessing
-├── documents_chunking.py    # Text chunking
-├── documents_embedding.py   # Embedding generation
-├── vector_store.py          # PostgreSQL/PGVector management
-├── README.md               # This file
-└── PGVECTOR_SETUP.md       # PGVector setup guide
+├── main.py                 # CLI entry point — orchestrates the full pipeline
+├── documents_loader.py     # Load PDFs/DOCX/TXT via LlamaParse or fallback
+├── documents_chunking.py   # Hierarchical parent-child splitting
+├── documents_embedding.py  # Vertex AI embedding wrapper
+├── vector_store.py         # PGVector store operations
+├── metadata_parser.py      # Extract grade/subject from filename
+├── debug_pdf.py            # Standalone tool to inspect a single PDF parse result
+├── PGVECTOR_SETUP.md       # PostgreSQL + pgvector setup guide
+└── README.md               # This file
 
 data/
-├── documents/              # Source documents (you create this)
-│   ├── sample.pdf
-│   ├── guide.docx
-│   └── readme.txt
+└── documents/              # Place source PDFs here (create this directory)
+    ├── SGV_KNTT_T1.pdf
+    ├── SGV_KNTT_TA3.pdf
+    └── SGV_KNTT_TV5_T2.pdf
 ```
 
-## Querying the Database
-
-You can query your vector database directly using SQL:
-
-```sql
--- View collections
-SELECT * FROM langchain_pg_collection;
-
--- Count documents
-SELECT COUNT(*) FROM langchain_pg_embedding;
-
--- Search by metadata
-SELECT document, cmetadata
-FROM langchain_pg_embedding
-WHERE cmetadata->>'source_file' = 'ai_overview.txt';
-```
-
-## Testing
-
-See sample documents in `data/documents/` for testing the ingestion pipeline.
-
-## Migration from ChromaDB
-
-If you previously used ChromaDB:
-
-1. **Update dependencies**: Done automatically via requirements.in
-2. **Configure PostgreSQL**: Set up PGVector (see PGVECTOR_SETUP.md)
-3. **Update .env**: Add PostgreSQL connection details
-4. **Run ingestion**: Use `--reset` flag to start fresh
-
-The vector_store.py API remains compatible, so no changes needed in RAG service code.
-
-## Next Steps
-
-After running ingestion, you can:
-
-1. Use the vector store for RAG operations
-2. Integrate with the RAG service in the main app
-3. Query documents via the API endpoints
+---
 
 ## Troubleshooting
 
-### "Extension 'vector' does not exist"
+**`Extension 'vector' does not exist`**
 
-- Make sure pgvector is installed in your PostgreSQL instance
-- Run `CREATE EXTENSION vector;` as a superuser
+```sql
+-- Run as a PostgreSQL superuser
+CREATE EXTENSION vector;
+```
 
-### Connection errors
+**`VERTEX_PROJECT_ID environment variable is required`**
 
-- Check PostgreSQL is running: `sudo systemctl status postgresql`
-- Verify connection details in `.env`
-- Test connection: `psql -h localhost -U postgres -d vectordb`
+Ensure `.env` is present at the project root and `VERTEX_PROJECT_ID` is set.
 
-### Memory issues
+**`Either PG_CONNECTION_STRING or PG_PASSWORD environment variable is required`**
 
-- Reduce batch size in ingestion script
-- Increase PostgreSQL shared_buffers in postgresql.conf
+Set `PG_CONNECTION_STRING` (e.g. `postgresql+psycopg2://postgres:pass@localhost:5432/vectordb`) or individual `PG_HOST` / `PG_PASSWORD` variables.
+
+**LlamaParse fails / falls back to basic loader**
+
+- Check `LLAMA_CLOUD_API_KEY` is set and valid (obtain from [cloud.llamaindex.ai](https://cloud.llamaindex.ai))
+- The basic fallback (PyMuPDF) still works but loses table structure and mixed-layout accuracy
+
+**Retrieval returns irrelevant results after changing embedding model**
+
+Re-run ingestion with `--reset` to rebuild all vectors with the new model. Mixing vectors from different models in the same collection produces incorrect similarity scores.
